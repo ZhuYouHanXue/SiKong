@@ -477,6 +477,13 @@
   margin-bottom: auto;
 }
 
+.card-scene--sand-sea .card-content,
+.card-scene--magic-tone .card-content,
+.card-scene--unruled .card-content,
+.card-scene--word-reverse .card-content {
+  row-gap: 16px;
+}
+
 .card-scene--empty .card-copy {
   align-self: stretch;
   justify-self: start;

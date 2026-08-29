@@ -694,7 +694,6 @@ async function start() {
     console.log(`司空服务端已启动：http://${HOST}:${PORT}`)
     console.log(`模型：${probe.provider}${probe.ok ? '（可用）' : '（不可用）'}`)
     if (!probe.ok && probe.error) console.log(`模型自检失败：${probe.error}`)
-    console.log('架构：Card-centric（无 Journey）')
   })
 }
 

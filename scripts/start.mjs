@@ -111,10 +111,10 @@ async function configureApiKey() {
   }
   const answer = (await ask('是否现在配置？输入 y 配置，直接回车跳过：')).trim().toLowerCase()
   if (answer === 'y' || answer === 'yes') {
-    const key = (await ask('请输入 DeepSeek API Key（sk-...）：')).trim()
+    const key = (await ask('请输入 DeepSeek API Key（仅保存在本地，不会上传）：')).trim()
     if (key) {
       writeApiKey(key)
-      log('已写入 server/model-config.json（该文件已被 git 忽略，不会提交到仓库）。')
+      log('已保存 API Key。')
     } else {
       log('未输入 Key，已跳过配置。')
     }

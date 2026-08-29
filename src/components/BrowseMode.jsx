@@ -38,7 +38,6 @@ import {
   exploreNext,
   findNodeByCardId,
   getNode,
-  markReadonly,
   replaceNode,
 } from '../services/journey.js'
 
@@ -355,7 +354,6 @@ function BrowseMode({
     actionLockedRef.current = true
     const journeyNode = findNodeByCardId(journeyRef.current, snapshot.card?.id)
     if (journeyNode) {
-      markReadonly(journeyRef.current, journeyNode.id)
       currentNodeIdRef.current = journeyNode.id
       setJourneyVersion((value) => value + 1)
     }
@@ -740,6 +738,8 @@ function BrowseMode({
         stage !== 'active'
       )
         return
+      const currentNode = getNode(journeyRef.current, currentNodeIdRef.current)
+      if (currentNode && currentNode.childrenIds.length > 0) return
       actionLockedRef.current = true
       if (card?.type === CARD_TYPES.EMPTY) discardEmptyTask(card.id)
       if (mode !== 'stay') cardSnapshotsRef.current.clear()

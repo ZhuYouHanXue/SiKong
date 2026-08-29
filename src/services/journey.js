@@ -96,14 +96,14 @@ function addChild(journey, parentId, card) {
 /** 探索续写：当前节点生儿子。card.head 应为当前节点 TAIL。 */
 export function exploreNext(journey, currentNodeId, card) {
   const node = getNode(journey, currentNodeId)
-  if (!node || node.readonly || !node.openable) return null
+  if (!node || !node.openable || node.childrenIds.length > 0) return null
   return addChild(journey, currentNodeId, card)
 }
 
 /** 驻足换引擎：找当前节点的妈妈（父节点）生一位并列弟弟。 */
 export function engineSibling(journey, currentNodeId, card) {
   const node = getNode(journey, currentNodeId)
-  if (!node || node.readonly || !node.openable) return null
+  if (!node || !node.openable) return null
   const motherId = node.parentId
   if (!motherId || !journey.nodes.has(motherId)) return null
   return addChild(journey, motherId, card)
@@ -112,7 +112,7 @@ export function engineSibling(journey, currentNodeId, card) {
 /** 驻足「避开 / 再遇一则」：HEAD 不变只换 TAIL，直接替换当前节点内容。 */
 export function replaceNode(journey, nodeId, card) {
   const node = getNode(journey, nodeId)
-  if (!node || node.readonly || !node.openable || !card) return node
+  if (!node || !node.openable || node.childrenIds.length > 0 || !card) return node
   node.card = card
   node.tail = card?.tail || node.tail
   return node

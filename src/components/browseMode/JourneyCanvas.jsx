@@ -40,9 +40,13 @@ export default function JourneyCanvas({
     canvas.height = Math.max(1, Math.floor(height * dpr))
     canvas.style.width = `${width}px`
     canvas.style.height = `${height}px`
-    layoutRef.current = computeJourneyLayout(journeyRef.current, width, height)
     const ctx = canvas.getContext('2d')
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+    if (!journeyRef.current) {
+      ctx.clearRect(0, 0, width, height)
+      return
+    }
+    layoutRef.current = computeJourneyLayout(journeyRef.current, width, height)
     drawJourney(ctx, journeyRef.current, width, height, currentRef.current, {
       showLabels: pureRef.current,
       hoverNodeId: hoverRef.current,

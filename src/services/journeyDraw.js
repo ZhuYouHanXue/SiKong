@@ -89,6 +89,7 @@ function brushPolygon(x1, y1, x2, y2, width) {
 }
 
 export function computeJourneyLayout(journey, w, h) {
+  if (!journey || !journey.nodes) return { nodes: [], edges: [], scale: 1 }
   const size = computeSize(journey)
   const pos = new Map()
   const depth = new Map([[journey.rootId, 0]])

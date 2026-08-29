@@ -63,7 +63,7 @@ export function computeJourneyLayout(journey, w, h) {
   const slotOffsets = Array.from({ length: slotCount }, (_, i) => -coneHalf + ((2 * coneHalf) * i) / (slotCount - 1))
   const baseLen = 130
   const targetAngle = Math.PI / 4
-  const minAngle = (5 * Math.PI) / 180
+  const minAngle = 0.03
   const maxAngle = (88 * Math.PI) / 180
 
   function slotWeight(offset, focus, sharp) {
@@ -94,9 +94,15 @@ export function computeJourneyLayout(journey, w, h) {
       let kidAngle
       if (idx === 0) {
         const drift = baseAngle - targetAngle
-        const steer = Math.max(-0.45, Math.min(0.45, -drift * 0.6))
-        const bend = (rand(kid.id, 'bend') - 0.5) * ((16 * Math.PI) / 180)
-        kidAngle = baseAngle + steer + bend
+        let offset
+        if (Math.abs(drift) > 0.6) {
+          offset = Math.max(-0.5, Math.min(0.5, -drift * 0.7))
+        } else {
+          const side = rand(kid.id, 'side') < 0.5 ? -1 : 1
+          const magnitude = 0.09 + rand(kid.id, 'mag') * (0.8 - 0.09)
+          offset = side * magnitude
+        }
+        kidAngle = baseAngle + offset
         kidAngle = Math.max(minAngle, Math.min(maxAngle, kidAngle))
       } else {
         const offset = pickSlot(available, kid.id, 0, 0.5)

@@ -71,7 +71,7 @@ export default function JourneyCanvas({
     labelAlphaRef.current += (targetAlpha - labelAlphaRef.current) * 0.14
     treeAlphaRef.current += (treeTarget - treeAlphaRef.current) * 0.12
     if (newBranchNodeRef.current && newBranchProgressRef.current < 1) {
-      newBranchProgressRef.current = Math.min(1, newBranchProgressRef.current + 0.0111)
+      newBranchProgressRef.current = Math.min(1, newBranchProgressRef.current + 0.0167)
     }
     draw()
     const settled =

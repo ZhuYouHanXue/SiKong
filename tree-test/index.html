@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="zh">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>journey 枯枝测试</title>
+    <style>
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        overflow: hidden;
+        font-family: system-ui, sans-serif;
+        background: #fff;
+        color: #111;
+      }
+      header {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 2;
+        padding: 12px 18px 8px;
+        background: rgba(255, 255, 255, 0.82);
+        border-bottom: 1px solid #eee;
+      }
+      header h1 { margin: 0 0 4px; font-size: 18px; }
+      header p { margin: 0; font-size: 12px; color: #555; }
+      .toolbar {
+        display: flex;
+        gap: 10px;
+        position: fixed;
+        top: 84px;
+        left: 18px;
+        z-index: 2;
+      }
+      .toolbar button {
+        padding: 8px 14px;
+        border: 1px solid #111;
+        background: #fff;
+        cursor: pointer;
+        font-size: 14px;
+      }
+      .toolbar button:hover { background: #111; color: #fff; }
+      #wrap {
+        position: fixed;
+        inset: 0;
+        z-index: 1;
+      }
+      canvas { display: block; width: 100vw; height: 100vh; background: #fff; }
+      #info {
+        position: fixed;
+        bottom: 10px;
+        left: 18px;
+        z-index: 2;
+        font-size: 13px;
+        color: #444;
+        background: rgba(255, 255, 255, 0.7);
+        padding: 4px 8px;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>journey 枯枝红花测试</h1>
+      <p>复用 journey 结构体与 journeyDraw 画树算法。节点用数字命名：生儿子 +1、生弟弟 +0.1（红色当前卡、小红点+红字=TAIL 梅花）。</p>
+    </header>
+    <div class="toolbar">
+      <button id="run">随机 20 步</button>
+      <button id="once">再一步</button>
+      <button id="reset">重置</button>
+    </div>
+    <div id="wrap"><canvas id="tree"></canvas></div>
+    <div id="info"></div>
+    <script type="module" src="/tree-test/main.mjs"></script>
+  </body>
+</html>

@@ -455,11 +455,26 @@
 .card-scene--magic-tone .card-copy,
 .card-scene--unruled .card-copy,
 .card-scene--word-reverse .card-copy {
-  align-self: center;
+  align-self: stretch;
   justify-self: start;
   width: min(720px, 100%);
   padding-top: 0;
   text-align: left;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--ink) transparent;
+}
+
+.card-scene--sand-sea .card-copy > *,
+.card-scene--magic-tone .card-copy > *,
+.card-scene--unruled .card-copy > *,
+.card-scene--word-reverse .card-copy > * {
+  margin-top: auto;
+  margin-bottom: auto;
 }
 
 .card-scene--empty .card-copy {

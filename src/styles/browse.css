@@ -16,6 +16,57 @@
   z-index: 0;
   pointer-events: none;
   opacity: 0.85;
+  transition: opacity 0.3s ease;
+}
+
+.browse-journey-bg.is-hidden {
+  opacity: 0;
+}
+
+.browse--pure-tree .browse-journey-bg {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.browse--pure-tree .card-scene {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.browse-tree-controls {
+  position: fixed;
+  right: 20px;
+  bottom: 24px;
+  z-index: 30;
+  display: grid;
+  gap: 10px;
+}
+
+.tree-ctrl {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border: var(--hairline);
+  background: var(--paper);
+  color: var(--ink);
+  cursor: pointer;
+  transition:
+    color 160ms ease,
+    background 160ms ease;
+}
+
+.tree-ctrl:hover,
+.tree-ctrl:focus-visible {
+  color: var(--paper);
+  background: var(--ink);
+  outline: 0;
+}
+
+.tree-ctrl svg {
+  width: 21px;
+  height: 21px;
 }
 
 .browse-topbar {

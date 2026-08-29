@@ -201,7 +201,8 @@ export function computeJourneyLayout(journey, w, h) {
   return { nodes, edges, scale }
 }
 
-export function drawJourney(ctx, journey, w, h, currentNodeId) {
+export function drawJourney(ctx, journey, w, h, currentNodeId, options = {}) {
+  const { showLabels = true, hoverNodeId = null, hoverScale = 0, labelAlpha = 1 } = options
   ctx.clearRect(0, 0, w, h)
   if (!journey) return
   const { nodes, edges, scale } = computeJourneyLayout(journey, w, h)
@@ -219,17 +220,21 @@ export function drawJourney(ctx, journey, w, h, currentNodeId) {
   ctx.textAlign = 'left'
   ctx.textBaseline = 'middle'
   const fontSize = Math.max(8, Math.min(14, 10 * Math.sqrt(scale)))
-  ctx.font = `${fontSize}px serif`
 
   for (const node of nodes) {
     const isCurrent = node.id === currentNodeId
+    const isHover = node.id === hoverNodeId
     ctx.fillStyle = SEAL_SOFT
     ctx.beginPath()
-    ctx.arc(node.x, node.y, isCurrent ? 6 : 3.5, 0, Math.PI * 2)
+    ctx.arc(node.x, node.y, isHover ? 3.5 + 3.5 * hoverScale : isCurrent ? 6 : 3.5, 0, Math.PI * 2)
     ctx.fill()
-    if (node.tail) {
-      ctx.fillStyle = SEAL_TITLE
-      ctx.fillText(node.tail, node.x + (isCurrent ? 22 : 6), node.y - 1)
+    if (showLabels && labelAlpha > 0 && node.tail && (!hoverNodeId || isHover)) {
+      ctx.fillStyle = '#c20c0c'
+      ctx.globalAlpha = labelAlpha * (isHover ? 0.96 : 0.8)
+      const fontScale = isHover ? 1 + 0.4 * hoverScale : 1
+      ctx.font = `${fontSize * fontScale}px serif`
+      ctx.fillText(node.tail, node.x + (isHover ? 15 + 5 * hoverScale : isCurrent ? 22 : 6), node.y - 1)
+      ctx.globalAlpha = 1
     }
     if (isCurrent) drawBlossom(ctx, node.x, node.y, 14)
   }

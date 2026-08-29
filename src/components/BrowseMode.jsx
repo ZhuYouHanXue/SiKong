@@ -106,6 +106,8 @@ function BrowseMode({
   const currentNodeIdRef = useRef(null)
   const journeyIntentRef = useRef('start')
   const [journeyVersion, setJourneyVersion] = useState(0)
+  const [showTree, setShowTree] = useState(true)
+  const [pureTree, setPureTree] = useState(false)
   const MAX_HEAD_LENGTH = 28
   const truncateHead = useCallback((value) => Array.from(String(value ?? '')).slice(0, MAX_HEAD_LENGTH).join(''), [])
   const browseInputLength = Array.from(searchInput).length
@@ -941,6 +943,26 @@ function BrowseMode({
     onModeChange?.(nextMode)
   }
 
+  const handleJumpToNode = useCallback((nodeId) => {
+    const node = getNode(journeyRef.current, nodeId)
+    if (!node || !node.card) return
+    currentNodeIdRef.current = nodeId
+    setCard(node.card)
+    setCardType(node.card.type || cardType)
+    setIndex(Math.max(0, Number(node.card.ordinal || 1) - 1))
+    setSaved(Boolean(savedCardsRef.current.has(node.card.id)))
+    setShowingRelation(false)
+    setExplanationStatus(node.card.explanation ? 'done' : 'idle')
+    setExplanationError(null)
+    setError(null)
+    setExitMode(null)
+    setExitVector(null)
+    setStage('active')
+    actionLockedRef.current = false
+    setPureTree(false)
+    setJourneyVersion((value) => value + 1)
+  }, [cardType])
+
   const handleNewBranch = useCallback((value) => {
     if (card?.type === CARD_TYPES.EMPTY) discardEmptyTask(card.id)
     const nextValue = truncateHead(value)
@@ -954,8 +976,40 @@ function BrowseMode({
 
   return (
     <>
-    <div className={`browse browse--${mode} browse--${stage}`}>
-      <JourneyCanvas journey={journeyRef.current} version={journeyVersion} currentNodeId={currentNodeIdRef.current} />
+    <div className={`browse browse--${mode} browse--${stage}${pureTree ? ' browse--pure-tree' : ''}`}>
+      <JourneyCanvas
+        journey={journeyRef.current}
+        version={journeyVersion}
+        currentNodeId={currentNodeIdRef.current}
+        showTree={showTree}
+        pureTree={pureTree}
+        onJumpToNode={handleJumpToNode}
+      />
+      <div className="browse-tree-controls">
+        {!pureTree && (
+          <button
+            className="tree-ctrl"
+            type="button"
+            aria-label={showTree ? '隐藏背景树' : '显示背景树'}
+            onClick={() => setShowTree((value) => !value)}
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M2 12 C5 7 19 7 22 12 C19 17 5 17 2 12 Z" fill="none" stroke="currentColor" strokeWidth="1.6" />
+              <circle cx="12" cy="12" r="3" fill="currentColor" />
+            </svg>
+          </button>
+        )}
+        <button
+          className="tree-ctrl"
+          type="button"
+          aria-label={pureTree ? '退出观树模式' : '观树模式'}
+          onClick={() => setPureTree((value) => !value)}
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M6 21 V7 M6 7 C6 5 9 4 11 6 M6 12 C4 12 3 10 4 8" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+          </svg>
+        </button>
+      </div>
       <header className="browse-topbar">
         <button type="button" onClick={() => savedCardsDrawerRef.current?.open()}>
           司空 <small>SIKONG</small>

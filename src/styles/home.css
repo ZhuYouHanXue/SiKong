@@ -535,7 +535,7 @@
 
 .seed-suggestions button:hover .is-mark,
 .seed-suggestions button:focus-visible .is-mark {
-  color: var(--seal);
+  color: var(--paper);
 }
 
 .seed-form__meta {

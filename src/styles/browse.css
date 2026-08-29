@@ -319,7 +319,7 @@
 
 .browse-search-suggestions button:hover .is-mark,
 .browse-search-suggestions button:focus-visible .is-mark {
-  color: var(--seal);
+  color: var(--paper);
 }
 
 .browse-search-suggestions button:hover i,

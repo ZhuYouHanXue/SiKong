@@ -57,34 +57,52 @@ function drawTree(ctx, w, h, journey, currentNodeId) {
   const size = computeSize(journey)
   const pos = new Map()
   const depth = new Map([[journey.rootId, 0]])
-  const rootAngle = Math.PI * 0.35
-  const rootSector = Math.PI * 0.55
-  const baseLen = 120
+  const rootAngle = Math.PI / 4
+  const coneHalf = (55 * Math.PI) / 180
+  const slotCount = 7
+  const slotOffsets = Array.from({ length: slotCount }, (_, i) => -coneHalf + ((2 * coneHalf) * i) / (slotCount - 1))
+  const baseLen = 130
+  const targetAngle = Math.PI / 4
+  const minAngle = (2 * Math.PI) / 180
+  const maxAngle = (92 * Math.PI) / 180
 
-  function layout(id, x, y, angle, sector) {
+  function slotWeight(angle) {
+    const d = Math.abs(angle - targetAngle)
+    return 1 / (1 + 7 * d * d)
+  }
+
+  function pickSlot(available, seed) {
+    const weights = available.map(slotWeight)
+    const total = weights.reduce((a, b) => a + b, 0)
+    let r = rand(seed, 'slot') * total
+    for (let i = 0; i < available.length; i += 1) {
+      r -= weights[i]
+      if (r <= 0) return available[i]
+    }
+    return available[available.length - 1]
+  }
+
+  function layout(id, baseAngle, x, y) {
     const node = journey.nodes.get(id)
     if (!node) return
     pos.set(id, { x, y })
     const kids = node.childrenIds.map((cid) => journey.nodes.get(cid)).filter(Boolean)
-    const totalWeight = kids.reduce((sum, kid) => sum + size.get(kid.id), 0) || 1
-    const start = angle - sector / 2
-    let acc = 0
+    let available = slotOffsets.slice()
     for (const kid of kids) {
-      const weight = size.get(kid.id)
-      const sub = sector * (weight / totalWeight)
+      const offset = pickSlot(available, kid.id)
+      available = available.filter((o) => o !== offset)
       const d = (depth.get(id) ?? 0) + 1
       depth.set(kid.id, d)
-      const jitter = (rand(kid.id) - 0.5) * 2 * Math.max(0.03, 0.14 * Math.pow(0.9, d))
-      let kidAngle = start + acc + sub / 2 + jitter
-      kidAngle = Math.max(Math.PI * 0.05, Math.min(Math.PI * 0.47, kidAngle))
+      const jitter = (rand(kid.id, 'jit') - 0.5) * 0.06
+      let kidAngle = baseAngle + offset + jitter
+      kidAngle = Math.max(minAngle, Math.min(maxAngle, kidAngle))
       const len = baseLen * Math.pow(0.84, d) + (rand(kid.id, 'len') - 0.5) * baseLen * 0.2
       const kx = x + Math.cos(kidAngle) * len
       const ky = y + Math.sin(kidAngle) * len
-      layout(kid.id, kx, ky, kidAngle, sub)
-      acc += sub
+      layout(kid.id, kidAngle, kx, ky)
     }
   }
-  layout(journey.rootId, 0, 0, rootAngle, rootSector)
+  layout(journey.rootId, rootAngle, 0, 0)
 
   let minX = Infinity
   let maxX = -Infinity

@@ -29,6 +29,7 @@ import {
 import { shuffle, wait } from './browseMode/utils.js'
 import { LoadingScene, SearchGlyphBuffer } from './browseMode/LoadingScenes.jsx'
 import { CardScene } from './browseMode/CardViews.jsx'
+import { useCandidateHighlights } from '../hooks/useCandidateHighlights.js'
 
 function BrowseMode({
   seed,
@@ -48,6 +49,7 @@ function BrowseMode({
   const [browseCandidates, setBrowseCandidates] = useState([])
   const [staySeed, setStaySeed] = useState(() => normalizeCardHead(seed))
   const [showBrowseSuggestions, setShowBrowseSuggestions] = useState(false)
+  const [browseSearchHint, setBrowseSearchHint] = useState('')
 
   useEffect(() => {
     if (mode !== 'new') return undefined
@@ -92,15 +94,18 @@ function BrowseMode({
   const lastSavedCardTokenRef = useRef(null)
   const MAX_HEAD_LENGTH = 20
   const truncateHead = useCallback((value) => Array.from(String(value ?? '')).slice(0, MAX_HEAD_LENGTH).join(''), [])
+  const browseInputLength = Array.from(searchInput).length
+  const isBrowseOverLimit = browseInputLength > MAX_HEAD_LENGTH
+  const browseHighlights = useCandidateHighlights(browseCandidates, browseInputLength)
 
   useEffect(() => {
     savedCardRequestRef.current = savedCardRequest
   }, [savedCardRequest])
 
   useEffect(() => {
-    seedRef.current = truncateHead(seed)
-    setSearchInput(truncateHead(seed))
-  }, [seed, truncateHead])
+    seedRef.current = seed
+    setSearchInput(seed)
+  }, [seed])
 
   useEffect(() => {
     const handlePointerDown = (event) => {
@@ -614,8 +619,16 @@ function BrowseMode({
       actionLockedRef.current ||
       FLOW_BUSY_STAGES.has(stage)
     ) return
-    const nextSeed = truncateHead(searchInput.trim())
-    if (!nextSeed || (nextSeed === seedRef.current && mode !== 'new')) return
+    const overLimit = Array.from(searchInput).length > MAX_HEAD_LENGTH
+    if (overLimit) {
+      setShowBrowseSuggestions(false)
+      setBrowseSearchHint('太多了，先控制在20字以内')
+      return
+    }
+    const trimmed = searchInput.trim()
+    if (!trimmed) return
+    const nextSeed = truncateHead(trimmed)
+    if (nextSeed === seedRef.current && mode !== 'new') return
 
     if (card?.type === CARD_TYPES.EMPTY) discardEmptyTask(card.id)
     cardRequestControllerRef.current?.abort()
@@ -906,21 +919,26 @@ function BrowseMode({
                 <button type="button" className="browse-engine-select" onClick={() => { setShowBrowseSuggestions(false); setShowBrowseEngineMenu((value) => !value) }} aria-expanded={showBrowseEngineMenu}>{CARD_DISPLAY_NAMES[cardType]} <i>⌄</i></button>
                 {showBrowseEngineMenu && <div className="browse-engine-menu">{CARD_TYPE_SEQUENCE.map((type) => <button type="button" key={type} className={cardType === type ? 'is-active' : ''} onClick={() => { setCardType(type); onSearchTypeChange?.(type); setShowBrowseEngineMenu(false) }}><strong>{CARD_DISPLAY_NAMES[type]}</strong><small>{CARD_ENGINE_NOTES[type]}</small></button>)}</div>}
               </div>
-              <input
-                type="text"
-                autoComplete="off"
-                value={searchInput}
-                maxLength={MAX_HEAD_LENGTH}
-                onChange={(event) => {
-                  const nextValue = truncateHead(event.target.value)
-                  setSearchInput(nextValue)
-                  onSearchInputChange?.(nextValue)
-                  setShowBrowseSuggestions(Boolean(nextValue.trim()))
-                }}
-                onFocus={() => { setShowBrowseSuggestions(Boolean(searchInput.trim())); setShowBrowseEngineMenu(false) }}
-                aria-label="搜索新的起点"
-                placeholder="换一个起点"
-              />
+              <div className="browse-input-wrap">
+                <input
+                  type="text"
+                  autoComplete="off"
+                  value={searchInput}
+                  onChange={(event) => {
+                    const nextValue = event.target.value
+                    setSearchInput(nextValue)
+                    onSearchInputChange?.(nextValue)
+                    setBrowseSearchHint('')
+                    setShowBrowseSuggestions(Boolean(nextValue.trim()))
+                  }}
+                  onFocus={() => { setShowBrowseSuggestions(Boolean(searchInput.trim())); setShowBrowseEngineMenu(false); setBrowseSearchHint('') }}
+                  aria-label="搜索新的起点"
+                  placeholder="换一个起点"
+                />
+                <span className={`browse-input-count${isBrowseOverLimit ? ' is-over' : ''}`} aria-hidden="true">
+                  {browseInputLength} / {MAX_HEAD_LENGTH}
+                </span>
+              </div>
               <button
                 type="submit"
                 disabled={!searchInput.trim() || FLOW_BUSY_STAGES.has(stage)}
@@ -929,24 +947,35 @@ function BrowseMode({
               </button>
               {showBrowseSuggestions && searchInput.trim() && (
                 <div className="browse-search-suggestions" role="listbox" aria-label="候选话题">
-                  {browseCandidates.map((topic) => (
-                    <button
-                      type="button"
-                      role="option"
-                      aria-selected={topic === searchInput}
-                      key={topic}
-                      onMouseDown={(event) => event.preventDefault()}
-                      onClick={() => {
-                        const nextValue = truncateHead(topic)
-                        setSearchInput(nextValue)
-                        onSearchInputChange?.(nextValue)
-                        setShowBrowseSuggestions(false)
-                      }}
-                    >
-                      <span>{topic}</span><i aria-hidden="true">↗</i>
-                    </button>
-                  ))}
+                  {browseCandidates.map((topic) => {
+                    const marked = browseHighlights[topic] || []
+                    return (
+                      <button
+                        type="button"
+                        role="option"
+                        aria-selected={topic === searchInput}
+                        key={topic}
+                        onMouseDown={(event) => event.preventDefault()}
+                        onClick={() => {
+                          setSearchInput(topic)
+                          onSearchInputChange?.(topic)
+                          setBrowseSearchHint('')
+                          setShowBrowseSuggestions(false)
+                        }}
+                      >
+                        <span className="browse-candidate-text">
+                          {Array.from(topic).map((char, index) => (
+                            <span key={index} className={marked.includes(index) ? 'is-mark' : undefined}>{char}</span>
+                          ))}
+                        </span>
+                        <i aria-hidden="true">↗</i>
+                      </button>
+                    )
+                  })}
                 </div>
+              )}
+              {browseSearchHint && (
+                <div className="browse-search-hint" role="status">{browseSearchHint}</div>
               )}
           </form>
           {mode === 'stay' && card && (

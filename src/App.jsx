@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import BrowseMode from './components/BrowseMode.jsx'
 import SavedCardsDrawer from './components/SavedCardsDrawer.jsx'
 import { CARD_TYPES } from './services/cards.js'
+import { useCandidateHighlights } from './hooks/useCandidateHighlights.js'
 import candidates from './text/candidates.json'
 import notLike from './text/not-like.json'
 import othersLike from './text/others-like.json'
@@ -86,6 +87,9 @@ function App() {
   const transitionControllerRef = useRef(null)
   const returnTimerRef = useRef(null)
   const departureGlyphRefs = useRef([])
+  const seedLength = Array.from(seed).length
+  const isSeedOverLimit = seedLength > MAX_HEAD_LENGTH
+  const candidateHighlights = useCandidateHighlights(candidateTopics, seedLength)
 
   useEffect(() => {
     if (activeSeed) return
@@ -205,9 +209,14 @@ function App() {
 
     if (transition) return
 
-    const cleanSeed = truncateHead(seed.trim())
+    const cleanSeed = seed.trim()
     if (!cleanSeed) {
       setStatus('empty')
+      inputRef.current?.focus()
+      return
+    }
+    if (isSeedOverLimit) {
+      setStatus('too-long')
       inputRef.current?.focus()
       return
     }
@@ -219,7 +228,7 @@ function App() {
   }
 
   const handleChange = (event) => {
-    setSeed(truncateHead(event.target.value))
+    setSeed(event.target.value)
     setShowSuggestions(true)
     if (status !== 'idle') {
       setStatus('idle')
@@ -227,7 +236,7 @@ function App() {
   }
 
   const handleSuggestion = (topic) => {
-    setSeed(truncateHead(topic))
+    setSeed(topic)
     setStatus('idle')
     setShowSuggestions(false)
     inputRef.current?.focus()
@@ -246,6 +255,7 @@ function App() {
   const statusText = {
     idle: '一个字，也足以成为起点',
     empty: '请先留下一点已知',
+    'too-long': '太多了，先控制在20字以内',
   }[status]
   if (activeSeed && !transition) {
     return (
@@ -326,20 +336,24 @@ function App() {
                 <button type="button" className="seed-engine-select" onClick={() => { setShowSuggestions(false); setShowEngineMenu((value) => !value) }} aria-expanded={showEngineMenu}>{engineNames[openingType]} <i>⌄</i></button>
                 {showEngineMenu && <div className="seed-engine-menu">{Object.entries(engineNames).map(([type, name]) => <button type="button" key={type} className={openingType === type ? 'is-active' : ''} onClick={() => { setOpeningType(type); setShowEngineMenu(false) }}><strong>{name}</strong><small>{engineNotes[type]}</small></button>)}</div>}
               </div>
-              <input
-                ref={inputRef}
-                id="seed-input"
-                name="seed"
-                type="text"
-                autoComplete="off"
-                maxLength={MAX_HEAD_LENGTH}
-                value={seed}
-                onChange={handleChange}
-                onFocus={() => { setShowSuggestions(Boolean(seed.trim())); setShowEngineMenu(false) }}
-                disabled={Boolean(transition)}
-                placeholder="一个词，一句话，或一段近来的念头"
-                aria-describedby="seed-status"
-              />
+              <div className="seed-input-wrap">
+                <input
+                  ref={inputRef}
+                  id="seed-input"
+                  name="seed"
+                  type="text"
+                  autoComplete="off"
+                  value={seed}
+                  onChange={handleChange}
+                  onFocus={() => { setShowSuggestions(Boolean(seed.trim())); setShowEngineMenu(false) }}
+                  disabled={Boolean(transition)}
+                  placeholder="一个词，一句话，或一段近来的念头"
+                  aria-describedby="seed-status"
+                />
+                <span className={`seed-input-count${isSeedOverLimit ? ' is-over' : ''}`} aria-hidden="true">
+                  {seedLength} / {MAX_HEAD_LENGTH}
+                </span>
+              </div>
               <button type="submit" disabled={Boolean(transition)}>
                 <span>由此生枝</span>
               </button>
@@ -369,19 +383,26 @@ function App() {
             </div>
             {showSuggestions && seed.trim() && (
               <div className="seed-suggestions" role="listbox" aria-label="候选话题">
-                {candidateTopics.map((topic) => (
-                  <button
-                    type="button"
-                    role="option"
-                    aria-selected={topic === seed}
-                    key={topic}
-                    onMouseDown={(event) => event.preventDefault()}
-                    onClick={() => handleSuggestion(topic)}
-                  >
-                    <span>{topic}</span>
-                    <i aria-hidden="true">↗</i>
-                  </button>
-                ))}
+                {candidateTopics.map((topic) => {
+                  const marked = candidateHighlights[topic] || []
+                  return (
+                    <button
+                      type="button"
+                      role="option"
+                      aria-selected={topic === seed}
+                      key={topic}
+                      onMouseDown={(event) => event.preventDefault()}
+                      onClick={() => handleSuggestion(topic)}
+                    >
+                      <span className="seed-candidate-text">
+                        {Array.from(topic).map((char, index) => (
+                          <span key={index} className={marked.includes(index) ? 'is-mark' : undefined}>{char}</span>
+                        ))}
+                      </span>
+                      <i aria-hidden="true">↗</i>
+                    </button>
+                  )
+                })}
               </div>
             )}
 
@@ -394,9 +415,6 @@ function App() {
                 <i aria-hidden="true" />
                 {statusText}
               </output>
-              <span className="seed-count" aria-hidden="true">
-                {String(Array.from(seed).length).padStart(2, '0')} / {MAX_HEAD_LENGTH}
-              </span>
             </div>
           </form>
 

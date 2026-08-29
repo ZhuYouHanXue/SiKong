@@ -218,6 +218,35 @@
   letter-spacing: 0.08em;
 }
 
+.seed-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  min-width: 0;
+}
+
+.seed-box .seed-input-wrap input {
+  flex: 1 1 auto;
+  width: 100%;
+  min-width: 0;
+  padding-right: 54px;
+}
+
+.seed-input-count {
+  position: absolute;
+  right: 12px;
+  bottom: 6px;
+  color: #9a9a9a;
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  line-height: 1;
+  pointer-events: none;
+}
+
+.seed-input-count.is-over {
+  color: var(--seal);
+}
+
 .seed-engine-select {
   display: inline-flex;
   align-items: center;
@@ -500,6 +529,10 @@
   font-style: normal;
 }
 
+.seed-suggestions .is-mark {
+  color: var(--seal);
+}
+
 .seed-form__meta {
   display: flex;
   justify-content: flex-start;
@@ -531,22 +564,20 @@
 }
 
 .seed-status--empty,
-.seed-status--error {
+.seed-status--error,
+.seed-status--too-long {
   color: var(--seal);
 }
 
 .seed-status--empty i,
 .seed-status--error i,
+.seed-status--too-long i,
 .seed-status--ready i {
   border-color: var(--seal);
 }
 
 .seed-status--loading i {
   animation: turn 1.2s steps(4, end) infinite;
-}
-
-.seed-count {
-  display: none;
 }
 
 .text-cloud {

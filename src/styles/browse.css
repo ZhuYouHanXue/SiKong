@@ -206,6 +206,34 @@
   letter-spacing: 0.08em;
 }
 
+.browse-input-wrap {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+}
+
+.browse-search-form .browse-input-wrap input {
+  width: 100%;
+  padding-right: 46px;
+}
+
+.browse-input-count {
+  position: absolute;
+  right: 7px;
+  bottom: 4px;
+  color: #9a9a9a;
+  font-size: 9px;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  pointer-events: none;
+}
+
+.browse-input-count.is-over {
+  color: var(--seal);
+}
+
 .browse-search-form input::placeholder {
   color: #777;
   opacity: 1;
@@ -285,9 +313,28 @@
   font-style: normal;
 }
 
+.browse-search-suggestions .is-mark {
+  color: var(--seal);
+}
+
 .browse-search-suggestions button:hover i,
 .browse-search-suggestions button:focus-visible i {
   color: var(--paper);
+}
+
+.browse-search-hint {
+  position: absolute;
+  top: calc(100% + 5px);
+  right: 0;
+  left: 0;
+  z-index: 45;
+  padding: 7px 10px;
+  border: var(--hairline-seal);
+  background: var(--paper);
+  color: var(--seal);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-align: right;
 }
 
 .card-type-selector {

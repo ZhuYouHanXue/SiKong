@@ -66,13 +66,13 @@ function drawTree(ctx, w, h, journey, currentNodeId) {
   const minAngle = (5 * Math.PI) / 180
   const maxAngle = (88 * Math.PI) / 180
 
-  function slotWeight(offset, focus) {
+  function slotWeight(offset, focus, sharp) {
     const d = Math.abs(offset - focus)
-    return 1 / (1 + 9 * d * d)
+    return 1 / (1 + sharp * d * d)
   }
 
-  function pickSlot(available, seed, focus) {
-    const weights = available.map((offset) => slotWeight(offset, focus))
+  function pickSlot(available, seed, focus, sharp) {
+    const weights = available.map((offset) => slotWeight(offset, focus, sharp))
     const total = weights.reduce((a, b) => a + b, 0)
     let r = rand(seed, 'slot') * total
     for (let i = 0; i < available.length; i += 1) {
@@ -90,8 +90,17 @@ function drawTree(ctx, w, h, journey, currentNodeId) {
     let available = slotOffsets.slice()
     for (let idx = 0; idx < kids.length; idx += 1) {
       const kid = kids[idx]
-      const focus = idx === 0 ? 0 : targetAngle - baseAngle
-      const offset = pickSlot(available, kid.id, focus)
+      let focus
+      let sharp
+      if (idx === 0) {
+        const drift = baseAngle - targetAngle
+        focus = targetAngle - baseAngle
+        sharp = 0.6 + 9 * Math.min(1, Math.abs(drift) / (0.35 * Math.PI))
+      } else {
+        focus = 0
+        sharp = 0.5
+      }
+      const offset = pickSlot(available, kid.id, focus, sharp)
       available = available.filter((o) => Math.abs(o - offset) > 0.001)
       const d = (depth.get(id) ?? 0) + 1
       depth.set(kid.id, d)

@@ -88,6 +88,10 @@ function brushPolygon(x1, y1, x2, y2, width) {
   return [...left, ...right.reverse()]
 }
 
+function scalePoly(poly, startX, startY, t) {
+  return poly.map(([x, y]) => [startX + (x - startX) * t, startY + (y - startY) * t])
+}
+
 export function computeJourneyLayout(journey, w, h) {
   if (!journey || !journey.nodes) return { nodes: [], edges: [], scale: 1 }
   const size = computeSize(journey)
@@ -197,25 +201,38 @@ export function computeJourneyLayout(journey, w, h) {
     const y1 = toY(a.y)
     const x2 = toX(b.x)
     const y2 = toY(b.y)
-    edges.push({ x1, y1, x2, y2, width, poly: brushPolygon(x1, y1, x2, y2, width) })
+    edges.push({ childId: id, x1, y1, x2, y2, width, poly: brushPolygon(x1, y1, x2, y2, width) })
   }
   return { nodes, edges, scale }
 }
 
 export function drawJourney(ctx, journey, w, h, currentNodeId, options = {}) {
-  const { showLabels = true, hoverNodeId = null, hoverScale = 0, labelAlpha = 1 } = options
+  const {
+    showLabels = true,
+    hoverNodeId = null,
+    hoverScale = 0,
+    labelAlpha = 1,
+    treeAlpha = 1,
+    newBranchNodeId = null,
+    newBranchProgress = 1,
+  } = options
   ctx.clearRect(0, 0, w, h)
   if (!journey) return
   const { nodes, edges, scale } = computeJourneyLayout(journey, w, h)
 
   for (const edge of edges) {
-    const poly = edge.poly
+    let poly = edge.poly
+    if (newBranchNodeId && edge.childId === newBranchNodeId && newBranchProgress < 1) {
+      poly = scalePoly(edge.poly, edge.x1, edge.y1, Math.max(0.001, newBranchProgress))
+    }
     ctx.fillStyle = INK_FILL
+    ctx.globalAlpha = treeAlpha
     ctx.beginPath()
     ctx.moveTo(poly[0][0], poly[0][1])
     for (let i = 1; i < poly.length; i += 1) ctx.lineTo(poly[i][0], poly[i][1])
     ctx.closePath()
     ctx.fill()
+    ctx.globalAlpha = 1
   }
 
   ctx.textAlign = 'left'
@@ -225,18 +242,23 @@ export function drawJourney(ctx, journey, w, h, currentNodeId, options = {}) {
   for (const node of nodes) {
     const isCurrent = node.id === currentNodeId
     const isHover = node.id === hoverNodeId
+    const nodeAlpha = treeAlpha * (node.id === newBranchNodeId ? Math.max(0.02, newBranchProgress) : 1)
+    ctx.globalAlpha = nodeAlpha
     ctx.fillStyle = SEAL_SOFT
     ctx.beginPath()
     ctx.arc(node.x, node.y, isHover ? 3.5 + 3.5 * hoverScale : isCurrent ? 6 : 3.5, 0, Math.PI * 2)
     ctx.fill()
     if (showLabels && labelAlpha > 0 && node.tail && (!hoverNodeId || isHover)) {
       ctx.fillStyle = '#c20c0c'
-      ctx.globalAlpha = labelAlpha * (isHover ? 0.96 : 0.8)
+      ctx.globalAlpha = nodeAlpha * labelAlpha * (isHover ? 0.96 : 0.8)
       const fontScale = isHover ? 1 + 0.4 * hoverScale : 1
       ctx.font = `${fontSize * fontScale}px serif`
       ctx.fillText(node.tail, node.x + (isHover ? 15 + 5 * hoverScale : isCurrent ? 22 : 6), node.y - 1)
-      ctx.globalAlpha = 1
     }
-    if (isCurrent) drawBlossom(ctx, node.x, node.y, 14)
+    if (isCurrent) {
+      ctx.globalAlpha = nodeAlpha
+      drawBlossom(ctx, node.x, node.y, 14)
+    }
+    ctx.globalAlpha = 1
   }
 }

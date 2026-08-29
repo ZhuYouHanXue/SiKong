@@ -340,7 +340,7 @@ try {
     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({}),
   })
   assert.equal('steps' in bookMeeting, false)
-  assert.equal(bookMeeting.title, '一页书纸意外地飘到你眼前')
+  assert.equal(bookMeeting.title, '那就按它说的做吧')
   assert.equal(bookMeeting.explanation, '这页书正好从你原本的问题旁边经过。')
 
   // An explicit entropy identifies one independent card; retrying it is a pure cache hit.

@@ -363,7 +363,7 @@ export async function composeBookMeeting({ card, signal } = {}) {
   }, validateMeetingExplanation)
   return {
     kind: 'book-meeting',
-    title: '一页书纸意外地飘到你眼前',
+    title: '那就按它说的做吧',
     explanation: reading.value.explanation,
     mode: reading.mode,
   }

@@ -202,7 +202,7 @@ function RelationPanel({ card, explanation, status, error, closing = false }) {
     const isBlindPoem = card?.type === CARD_TYPES.BLIND_POEM
     const firstLine = card?.content?.lines?.[0] || ''
     const secondLine = card?.content?.lines?.[1] || ''
-    const meetingTitle = isBlindPoem ? '两句诗偶然碰到了一起' : '一页书纸意外地飘到你眼前'
+    const meetingTitle = isBlindPoem ? '两句诗偶然碰到了一起' : '那就按它说的做吧'
     const meetingExplanation = explanation?.explanation || (isBlindPoem
       ? '这两句像从不同方向吹来的风，在纸页上短暂地共用同一片空白。'
       : '这句书页上的话，像一枚从别处落下的路标，恰好照亮了你原本的起点。')

@@ -63,16 +63,16 @@ function drawTree(ctx, w, h, journey, currentNodeId) {
   const slotOffsets = Array.from({ length: slotCount }, (_, i) => -coneHalf + ((2 * coneHalf) * i) / (slotCount - 1))
   const baseLen = 130
   const targetAngle = Math.PI / 4
-  const minAngle = (2 * Math.PI) / 180
-  const maxAngle = (92 * Math.PI) / 180
+  const minAngle = (5 * Math.PI) / 180
+  const maxAngle = (88 * Math.PI) / 180
 
-  function slotWeight(angle) {
-    const d = Math.abs(angle - targetAngle)
-    return 1 / (1 + 7 * d * d)
+  function slotWeight(offset, focus) {
+    const d = Math.abs(offset - focus)
+    return 1 / (1 + 9 * d * d)
   }
 
-  function pickSlot(available, seed) {
-    const weights = available.map(slotWeight)
+  function pickSlot(available, seed, focus) {
+    const weights = available.map((offset) => slotWeight(offset, focus))
     const total = weights.reduce((a, b) => a + b, 0)
     let r = rand(seed, 'slot') * total
     for (let i = 0; i < available.length; i += 1) {
@@ -88,15 +88,17 @@ function drawTree(ctx, w, h, journey, currentNodeId) {
     pos.set(id, { x, y })
     const kids = node.childrenIds.map((cid) => journey.nodes.get(cid)).filter(Boolean)
     let available = slotOffsets.slice()
-    for (const kid of kids) {
-      const offset = pickSlot(available, kid.id)
-      available = available.filter((o) => o !== offset)
+    for (let idx = 0; idx < kids.length; idx += 1) {
+      const kid = kids[idx]
+      const focus = idx === 0 ? 0 : targetAngle - baseAngle
+      const offset = pickSlot(available, kid.id, focus)
+      available = available.filter((o) => Math.abs(o - offset) > 0.001)
       const d = (depth.get(id) ?? 0) + 1
       depth.set(kid.id, d)
-      const jitter = (rand(kid.id, 'jit') - 0.5) * 0.06
+      const jitter = (rand(kid.id, 'jit') - 0.5) * 0.04
       let kidAngle = baseAngle + offset + jitter
       kidAngle = Math.max(minAngle, Math.min(maxAngle, kidAngle))
-      const len = baseLen * Math.pow(0.84, d) + (rand(kid.id, 'len') - 0.5) * baseLen * 0.2
+      const len = baseLen * Math.pow(0.84, d) + (rand(kid.id, 'len') - 0.5) * baseLen * 0.18
       const kx = x + Math.cos(kidAngle) * len
       const ky = y + Math.sin(kidAngle) * len
       layout(kid.id, kidAngle, kx, ky)

@@ -175,7 +175,7 @@ async function main() {
     log('')
     log('\x1b[92m前端→：http://localhost:5173\x1b[0m')
     log('服务端：http://127.0.0.1:8787')
-    log('API检查通过')
+    log('API检查通过 模型：deepseek（可用）')
   }, 1600).unref()
 }
 

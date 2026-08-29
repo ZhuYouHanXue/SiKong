@@ -6,6 +6,7 @@
   display: grid;
   place-items: center;
   padding: 82px 34px 48px;
+  transition: opacity 0.25s ease;
 }
 
 .card-scene--active {

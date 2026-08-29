@@ -993,9 +993,9 @@ function BrowseMode({
             aria-label={showTree ? '隐藏背景树' : '显示背景树'}
             onClick={() => setShowTree((value) => !value)}
           >
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M2 12 C5 7 19 7 22 12 C19 17 5 17 2 12 Z" fill="none" stroke="currentColor" strokeWidth="1.6" />
-              <circle cx="12" cy="12" r="3" fill="currentColor" />
+            <svg viewBox="0 0 16 16" aria-hidden="true">
+              <path d="M1.5 8s2.5-4.7 6.5-4.7S14.5 8 14.5 8 12 12.7 8 12.7 1.5 8 1.5 8Z" fill="none" stroke="currentColor" strokeWidth="1.1" />
+              <circle cx="8" cy="8" r="2" fill="currentColor" />
             </svg>
           </button>
         )}
@@ -1005,8 +1005,11 @@ function BrowseMode({
           aria-label={pureTree ? '退出观树模式' : '观树模式'}
           onClick={() => setPureTree((value) => !value)}
         >
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M6 21 V7 M6 7 C6 5 9 4 11 6 M6 12 C4 12 3 10 4 8" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+          <svg viewBox="0 0 16 16" aria-hidden="true">
+            <circle cx="8" cy="3" r="1.8" fill="none" stroke="currentColor" strokeWidth="1.1" />
+            <circle cx="3.2" cy="13" r="1.8" fill="none" stroke="currentColor" strokeWidth="1.1" />
+            <circle cx="12.8" cy="13" r="1.8" fill="none" stroke="currentColor" strokeWidth="1.1" />
+            <path d="M8 4.8V8c0 2.2-1.8 3-2.8 3.2M8 8c0 2.2 1.8 3 2.8 3.2" fill="none" stroke="currentColor" strokeWidth="1.1" />
           </svg>
         </button>
       </div>

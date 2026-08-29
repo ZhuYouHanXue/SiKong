@@ -16,7 +16,7 @@
   z-index: 0;
   pointer-events: none;
   opacity: 0.85;
-  transition: opacity 0.3s ease;
+  transition: opacity 0.25s ease;
 }
 
 .browse-journey-bg.is-hidden {
@@ -46,27 +46,26 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 42px;
-  height: 42px;
-  border: var(--hairline);
-  background: var(--paper);
+  width: 40px;
+  height: 40px;
+  border: 0;
+  background: transparent;
   color: var(--ink);
   cursor: pointer;
+  opacity: 0.72;
   transition:
-    color 160ms ease,
-    background 160ms ease;
+    opacity 160ms ease;
 }
 
 .tree-ctrl:hover,
 .tree-ctrl:focus-visible {
-  color: var(--paper);
-  background: var(--ink);
+  opacity: 1;
   outline: 0;
 }
 
 .tree-ctrl svg {
-  width: 21px;
-  height: 21px;
+  width: 22px;
+  height: 22px;
 }
 
 .browse-topbar {

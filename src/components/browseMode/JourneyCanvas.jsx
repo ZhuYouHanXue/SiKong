@@ -48,7 +48,7 @@ export default function JourneyCanvas({
     }
     layoutRef.current = computeJourneyLayout(journeyRef.current, width, height)
     drawJourney(ctx, journeyRef.current, width, height, currentRef.current, {
-      showLabels: pureRef.current,
+      showLabels: true,
       hoverNodeId: hoverRef.current,
       hoverScale: hoverScaleRef.current,
       labelAlpha: labelAlphaRef.current,
@@ -58,8 +58,8 @@ export default function JourneyCanvas({
   const animate = useCallback(() => {
     const targetHover = hoverRef.current ? 1 : 0
     const targetAlpha = pureRef.current ? 1 : 0
-    hoverScaleRef.current += (targetHover - hoverScaleRef.current) * 0.18
-    labelAlphaRef.current += (targetAlpha - labelAlphaRef.current) * 0.1
+    hoverScaleRef.current += (targetHover - hoverScaleRef.current) * 0.22
+    labelAlphaRef.current += (targetAlpha - labelAlphaRef.current) * 0.14
     draw()
     const settled =
       Math.abs(hoverScaleRef.current - targetHover) < 0.01 &&

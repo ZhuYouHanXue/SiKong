@@ -24,6 +24,15 @@ function fail(message) {
   process.exitCode = 1
 }
 
+function killTree(child) {
+  if (!child?.pid || child.killed) return
+  if (process.platform === 'win32') {
+    spawnSync('taskkill', ['/pid', String(child.pid), '/t', '/f'], { stdio: 'ignore' })
+    return
+  }
+  child.kill('SIGTERM')
+}
+
 function nodeMajor() {
   const match = process.version.match(/^v(\d+)\./)
   return match ? Number(match[1]) : 0
@@ -162,8 +171,13 @@ async function main() {
   log('启动完成后请打开 http://localhost:5173')
   log('按 Ctrl+C 停止。')
 
-  const child = spawn(process.execPath, [devScript], { cwd: rootDir, stdio: 'inherit' })
-  const forward = (signal) => child.kill(signal)
+  const quote = (value) => `"${String(value)}"`
+  const child = spawn([quote(process.execPath), quote(devScript)].join(' '), {
+    cwd: rootDir,
+    stdio: 'inherit',
+    shell: true,
+  })
+  const forward = () => killTree(child)
   process.on('SIGINT', () => forward('SIGINT'))
   process.on('SIGTERM', () => forward('SIGTERM'))
   child.on('exit', (code, signal) => {

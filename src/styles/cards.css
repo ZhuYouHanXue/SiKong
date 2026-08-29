@@ -45,6 +45,7 @@
   width: min(78vw, 980px);
   height: min(67vh, 650px);
   min-height: 470px;
+  background: rgba(255, 255, 255, 0.78);
 }
 
 .mouth-border {

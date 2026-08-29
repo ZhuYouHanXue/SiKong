@@ -946,22 +946,45 @@ function BrowseMode({
   const handleJumpToNode = useCallback((nodeId) => {
     const node = getNode(journeyRef.current, nodeId)
     if (!node || !node.card) return
+    const target = node.card
+    const token = flowTokenRef.current + 1
+    flowTokenRef.current = token
+    cardRequestControllerRef.current?.abort()
+    explanationControllerRef.current?.abort()
+    window.clearTimeout(entryTimerRef.current)
+    window.cancelAnimationFrame(entryFrameRef.current)
+    entryTimerRef.current = null
+    entryFrameRef.current = null
+
+    const targetType = target.type || cardType
     currentNodeIdRef.current = nodeId
-    setCard(node.card)
-    setCardType(node.card.type || cardType)
-    setIndex(Math.max(0, Number(node.card.ordinal || 1) - 1))
-    setSaved(Boolean(savedCardsRef.current.has(node.card.id)))
+    setCard(target)
+    setCardType(targetType)
+    setLoadingType(targetType)
+    setIndex(Math.max(0, Number(target.ordinal || 1) - 1))
+    if (mode === 'stay') setStaySeed(truncateHead(target.head || target.input || seedRef.current))
+    setSaved(Boolean(savedCardsRef.current.has(target.id)))
+    setFeedback(null)
     setShowingRelation(false)
-    setExplanationStatus(node.card.explanation ? 'done' : 'idle')
+    setExplanationStatus(target.explanation ? 'done' : 'idle')
     setExplanationError(null)
     setError(null)
     setExitMode(null)
     setExitVector(null)
-    setStage('active')
-    actionLockedRef.current = false
+    setStage('entering')
+    actionLockedRef.current = true
+    entryFrameRef.current = window.requestAnimationFrame(() => {
+      entryFrameRef.current = null
+      entryTimerRef.current = window.setTimeout(() => {
+        if (flowTokenRef.current !== token) return
+        actionLockedRef.current = false
+        setStage('active')
+        entryTimerRef.current = null
+      }, CARD_ENTRY_DURATION)
+    })
     setPureTree(false)
     setJourneyVersion((value) => value + 1)
-  }, [cardType])
+  }, [cardType, mode, truncateHead])
 
   const handleNewBranch = useCallback((value) => {
     if (card?.type === CARD_TYPES.EMPTY) discardEmptyTask(card.id)

@@ -265,7 +265,7 @@ export function drawJourney(ctx, journey, w, h, currentNodeId, options = {}) {
       ctx.globalAlpha = nodeAlpha * labelAlpha * (isHover ? 0.96 : 0.8)
       const fontScale = isHover ? 1 + 0.4 * hoverScale : 1
       ctx.font = `${fontSize * fontScale}px serif`
-      ctx.fillText(node.tail, node.x + (isHover ? 15 + 5 * hoverScale : isCurrent ? 22 : 6), node.y - 1)
+      ctx.fillText(node.tail, node.x + (isHover ? 15 + 5 * hoverScale : isCurrent ? 22 : 16), node.y - 1)
     }
     if (isCurrent) {
       ctx.globalAlpha = nodeAlpha

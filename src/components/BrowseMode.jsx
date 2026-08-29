@@ -29,6 +29,7 @@ import {
 import { shuffle, wait } from './browseMode/utils.js'
 import { LoadingScene, SearchGlyphBuffer } from './browseMode/LoadingScenes.jsx'
 import { CardScene } from './browseMode/CardViews.jsx'
+import JourneyCanvas from './browseMode/JourneyCanvas.jsx'
 import { useCandidateHighlights } from '../hooks/useCandidateHighlights.js'
 import {
   createJourney,
@@ -105,6 +106,7 @@ function BrowseMode({
   const journeyRef = useRef(null)
   const currentNodeIdRef = useRef(null)
   const journeyIntentRef = useRef('start')
+  const [journeyVersion, setJourneyVersion] = useState(0)
   const MAX_HEAD_LENGTH = 28
   const truncateHead = useCallback((value) => Array.from(String(value ?? '')).slice(0, MAX_HEAD_LENGTH).join(''), [])
   const browseInputLength = Array.from(searchInput).length
@@ -352,7 +354,11 @@ function BrowseMode({
     setStage('entering')
     actionLockedRef.current = true
     const journeyNode = findNodeByCardId(journeyRef.current, snapshot.card?.id)
-    if (journeyNode) markReadonly(journeyRef.current, journeyNode.id)
+    if (journeyNode) {
+      markReadonly(journeyRef.current, journeyNode.id)
+      currentNodeIdRef.current = journeyNode.id
+      setJourneyVersion((value) => value + 1)
+    }
     const entryToken = flowTokenRef.current
     // 等待一次绘制后再开始计时，避免 React 提交新卡片与入场动画
     // 的起点之间消耗掉极短的一段时间。
@@ -421,6 +427,7 @@ function BrowseMode({
     } else if (intent === 'replace') {
       replaceNode(journey, currentNodeIdRef.current, nextCard)
     }
+    setJourneyVersion((value) => value + 1)
   }, [])
 
   const beginCardFlow = useCallback(
@@ -576,6 +583,7 @@ function BrowseMode({
       journeyRef.current = createJourney(presetCard)
       const firstNode = getNode(journeyRef.current, journeyRef.current.rootId)?.childrenIds?.[0]
       currentNodeIdRef.current = firstNode || journeyRef.current.rootId
+      setJourneyVersion((value) => value + 1)
       setCard(presetCard)
       setStage('loading-out')
       await wait(LOADER_FADE_DURATION)
@@ -911,6 +919,7 @@ function BrowseMode({
 
   const handleReturn = () => {
     if (journeyRef.current) endJourney(journeyRef.current)
+    setJourneyVersion((value) => value + 1)
     flowTokenRef.current += 1
     if (card?.type === CARD_TYPES.EMPTY) discardEmptyTask(card.id)
     cardRequestControllerRef.current?.abort()
@@ -943,6 +952,7 @@ function BrowseMode({
   return (
     <>
     <div className={`browse browse--${mode} browse--${stage}`}>
+      <JourneyCanvas journey={journeyRef.current} version={journeyVersion} currentNodeId={currentNodeIdRef.current} />
       <header className="browse-topbar">
         <button type="button" onClick={() => savedCardsDrawerRef.current?.open()}>
           司空 <small>SIKONG</small>

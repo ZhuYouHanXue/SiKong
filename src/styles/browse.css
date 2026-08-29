@@ -10,6 +10,14 @@
   isolation: isolate;
 }
 
+.browse-journey-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.7;
+}
+
 .browse-topbar {
   position: absolute;
   top: 0;

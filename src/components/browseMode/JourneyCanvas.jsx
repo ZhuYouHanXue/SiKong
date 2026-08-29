@@ -1,9 +1,9 @@
 import { useEffect, useRef } from 'react'
 
-const INK_COLOR = 'rgba(0, 0, 0, 0.2)'
+const INK_COLOR = 'rgba(0, 0, 0, 0.5)'
 const SEAL = '#c20c0c'
-const SEAL_SOFT = 'rgba(194, 12, 12, 0.55)'
-const SEAL_TITLE = 'rgba(194, 12, 12, 0.8)'
+const SEAL_SOFT = 'rgba(194, 12, 12, 0.7)'
+const SEAL_TITLE = 'rgba(194, 12, 12, 0.9)'
 
 function hash(str) {
   let h = 2166136261
@@ -57,8 +57,8 @@ function drawTree(ctx, w, h, journey, currentNodeId) {
   const size = computeSize(journey)
   const pos = new Map()
   const depth = new Map([[journey.rootId, 0]])
-  const rootAngle = -Math.PI / 5
-  const rootSector = Math.PI * 0.85
+  const rootAngle = Math.PI * 0.35
+  const rootSector = Math.PI * 0.55
   const baseLen = 120
 
   function layout(id, x, y, angle, sector) {
@@ -75,7 +75,8 @@ function drawTree(ctx, w, h, journey, currentNodeId) {
       const d = (depth.get(id) ?? 0) + 1
       depth.set(kid.id, d)
       const jitter = (rand(kid.id) - 0.5) * 2 * Math.max(0.03, 0.14 * Math.pow(0.9, d))
-      const kidAngle = start + acc + sub / 2 + jitter
+      let kidAngle = start + acc + sub / 2 + jitter
+      kidAngle = Math.max(Math.PI * 0.05, Math.min(Math.PI * 0.55, kidAngle))
       const len = baseLen * Math.pow(0.84, d) + (rand(kid.id, 'len') - 0.5) * baseLen * 0.2
       const kx = x + Math.cos(kidAngle) * len
       const ky = y + Math.sin(kidAngle) * len
@@ -98,7 +99,9 @@ function drawTree(ctx, w, h, journey, currentNodeId) {
   const pad = 52
   const boxW = Math.max(1, maxX - minX)
   const boxH = Math.max(1, maxY - minY)
-  const scale = Math.min((w - pad * 2) / boxW, (h - pad * 2) / boxH)
+  const fitScale = Math.min((w * 0.85) / boxW, (h * 0.85) / boxH)
+  const MAX_SCALE = 2.6
+  const scale = Math.min(fitScale, MAX_SCALE)
   const toX = (x) => pad + (x - minX) * scale
   const toY = (y) => h - pad - (y - minY) * scale
 

@@ -181,22 +181,6 @@ export function computeJourneyLayout(journey, w, h) {
   const toX = (x) => pad + (x - minX) * scale
   const toY = (y) => h - pad - (y - minY) * scale
 
-  const maxOutWidth = new Map()
-  for (const edge of edges) {
-    const parentId = journey.nodes.get(edge.childId)?.parentId
-    if (parentId == null) continue
-    const current = maxOutWidth.get(parentId) || 0
-    if (edge.width > current) maxOutWidth.set(parentId, edge.width)
-  }
-
-  const nodes = []
-  for (const [id, node] of journey.nodes) {
-    const p = pos.get(id)
-    if (!p) continue
-    const out = maxOutWidth.get(id) || 0
-    const radius = out ? Math.min(10, Math.max(3.2, out * 0.8)) : 3.2
-    nodes.push({ id, x: toX(p.x), y: toY(p.y), tail: node.tail, size: size.get(id) || 1, radius })
-  }
   const edges = []
   for (const [id, node] of journey.nodes) {
     if (!node.parentId) continue
@@ -212,6 +196,23 @@ export function computeJourneyLayout(journey, w, h) {
     const x2 = toX(b.x)
     const y2 = toY(b.y)
     edges.push({ childId: id, x1, y1, x2, y2, width, poly: brushPolygon(x1, y1, x2, y2, width) })
+  }
+
+  const maxOutWidth = new Map()
+  for (const edge of edges) {
+    const parentId = journey.nodes.get(edge.childId)?.parentId
+    if (parentId == null) continue
+    const current = maxOutWidth.get(parentId) || 0
+    if (edge.width > current) maxOutWidth.set(parentId, edge.width)
+  }
+
+  const nodes = []
+  for (const [id, node] of journey.nodes) {
+    const p = pos.get(id)
+    if (!p) continue
+    const out = maxOutWidth.get(id) || 0
+    const radius = out ? Math.min(10, Math.max(3.2, out * 0.8)) : 3.2
+    nodes.push({ id, x: toX(p.x), y: toY(p.y), tail: node.tail, size: size.get(id) || 1, radius })
   }
   return { nodes, edges, scale }
 }

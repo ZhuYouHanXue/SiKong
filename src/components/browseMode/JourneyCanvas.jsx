@@ -165,7 +165,7 @@ export default function JourneyCanvas({
       aria-hidden="true"
       onPointerMove={onPointerMove}
       onPointerLeave={onPointerLeave}
-      onPointerClick={onPointerClick}
+      onClick={onPointerClick}
     />
   )
 }

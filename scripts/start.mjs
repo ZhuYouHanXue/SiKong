@@ -170,6 +170,14 @@ async function main() {
     if (signal) process.exit(1)
     process.exit(code ?? 0)
   })
+
+  setTimeout(() => {
+    log('')
+    log('────────────────────────────────────────')
+    log('  请打开这个地址：http://localhost:5173')
+    log('  （8787 是服务端口，不需要打开）')
+    log('────────────────────────────────────────')
+  }, 1600).unref()
 }
 
 main().catch((error) => {

@@ -181,11 +181,21 @@ export function computeJourneyLayout(journey, w, h) {
   const toX = (x) => pad + (x - minX) * scale
   const toY = (y) => h - pad - (y - minY) * scale
 
+  const maxOutWidth = new Map()
+  for (const edge of edges) {
+    const parentId = journey.nodes.get(edge.childId)?.parentId
+    if (parentId == null) continue
+    const current = maxOutWidth.get(parentId) || 0
+    if (edge.width > current) maxOutWidth.set(parentId, edge.width)
+  }
+
   const nodes = []
   for (const [id, node] of journey.nodes) {
     const p = pos.get(id)
     if (!p) continue
-    nodes.push({ id, x: toX(p.x), y: toY(p.y), tail: node.tail, size: size.get(id) || 1 })
+    const out = maxOutWidth.get(id) || 0
+    const radius = out ? Math.min(10, Math.max(3.2, out * 0.8)) : 3.2
+    nodes.push({ id, x: toX(p.x), y: toY(p.y), tail: node.tail, size: size.get(id) || 1, radius })
   }
   const edges = []
   for (const [id, node] of journey.nodes) {
@@ -243,10 +253,11 @@ export function drawJourney(ctx, journey, w, h, currentNodeId, options = {}) {
     const isCurrent = node.id === currentNodeId
     const isHover = node.id === hoverNodeId
     const nodeAlpha = treeAlpha * (node.id === newBranchNodeId ? Math.max(0.02, newBranchProgress) : 1)
+    const dotR = isHover ? (node.radius || 3.5) * (1 + 0.5 * hoverScale) : node.radius || 3.5
     ctx.globalAlpha = nodeAlpha
     ctx.fillStyle = SEAL_SOFT
     ctx.beginPath()
-    ctx.arc(node.x, node.y, isHover ? 3.5 + 3.5 * hoverScale : isCurrent ? 6 : 3.5, 0, Math.PI * 2)
+    ctx.arc(node.x, node.y, dotR, 0, Math.PI * 2)
     ctx.fill()
     if (showLabels && labelAlpha > 0 && node.tail && (!hoverNodeId || isHover)) {
       ctx.fillStyle = '#c20c0c'
@@ -257,7 +268,7 @@ export function drawJourney(ctx, journey, w, h, currentNodeId, options = {}) {
     }
     if (isCurrent) {
       ctx.globalAlpha = nodeAlpha
-      drawBlossom(ctx, node.x, node.y, 14)
+      drawBlossom(ctx, node.x, node.y, 7 * (isHover ? 1 + 0.5 * hoverScale : 1))
     }
     ctx.globalAlpha = 1
   }

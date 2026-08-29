@@ -240,9 +240,9 @@ const SavedCardsDrawer = forwardRef(function SavedCardsDrawer({
                       <small>{formatSavedAt(card.savedAt)}</small>
                     </div>
                     <p className="saved-card-item__route">
-                      <span>{truncate(cleanText(card.head || card.input, '未知起点'), 7)}</span>
+                      <span>{truncate(cleanText(card.head || card.input, '程序在这里发生了一个意外 但你完全可以放任不管'), 7)}</span>
                       <i>{'   '}→{'   '}</i>
-                      <span>{truncate(cleanText(card.tail || card.content?.lines?.at(-1), '未知方向'), 7)}</span>
+                      <span>{truncate(cleanText(card.tail || card.content?.lines?.at(-1), '程序在这里发生了一个意外 但你完全可以放任不管'), 7)}</span>
                     </p>
                     <p className="saved-card-item__summary">{cardSummary(card)}</p>
                   </button>

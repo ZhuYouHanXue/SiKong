@@ -36,7 +36,7 @@ const codePointLength = value => codePoints(value).length
 
 export function edgeText(value, fallback = '') {
   const normalized = clean(value, fallback).replace(/```(?:json)?/gi, '').replace(/^[-*\d.)、\s]+/u, '').split(/[\r\n]/u)[0].trim()
-  return codePoints(normalized).slice(0, 20).join('')
+  return codePoints(normalized).slice(0, 28).join('')
 }
 
 function schemaError(message) {
@@ -90,7 +90,7 @@ export function tokenizeHead(head) {
   const seen = new Set()
   const tokens = candidates.filter(item => item.text && !STOP_WORDS.has(item.text) && !seen.has(item.text) && seen.add(item.text)).slice(0, 12)
   if (tokens.length) return tokens
-  const fallback = codePoints(source).filter(char => /[\p{Script=Han}A-Za-z0-9]/u.test(char)).join('') || source || '未知起点'
+  const fallback = codePoints(source).filter(char => /[\p{Script=Han}A-Za-z0-9]/u.test(char)).join('') || source || '程序在这里发生了一个意外 但你完全可以放任不管'
   const text = edgeText(fallback)
   return text ? [{ text, start: 0, end: text.length, kind: 'content' }] : []
 }
@@ -274,7 +274,7 @@ function compatContents(type, special, head) {
 }
 
 export async function composeCard({ head, seed, type, index = 0, time, entropy, signal } = {}) {
-  const safeHead = edgeText(head || seed, '未知起点')
+  const safeHead = edgeText(head || seed, '程序在这里发生了一个意外 但你完全可以放任不管')
   const normalizedType = CARD_META[type] ? type : CARD_TYPES.SAND_SEA
   const createdAt = clean(time, new Date().toISOString()).slice(0, 80)
   const entropyValue = clean(entropy, randomUUID()).slice(0, 120)
@@ -339,7 +339,7 @@ export async function composeExplanation({ card, signal } = {}) {
 }
 
 export async function composeBlindPoemMeeting({ card, signal } = {}) {
-  const head = edgeText(card?.head || card?.input, '一个起点')
+  const head = edgeText(card?.head || card?.input, '程序在这里发生了一个意外 但你完全可以放任不管')
   const firstLine = edgeText(card?.content?.lines?.[0], head)
   const secondLine = edgeText(card?.content?.lines?.[1] || card?.tail, firstLine)
   const reading = await strictStage('poem-meeting', {
@@ -355,8 +355,8 @@ export async function composeBlindPoemMeeting({ card, signal } = {}) {
 }
 
 export async function composeBookMeeting({ card, signal } = {}) {
-  const head = edgeText(card?.head || card?.input, '一个起点')
-  const answer = edgeText(card?.content?.lines?.[0] || card?.tail, '一页书纸')
+  const head = edgeText(card?.head || card?.input, '程序在这里发生了一个意外 但你完全可以放任不管')
+  const answer = edgeText(card?.content?.lines?.[0] || card?.tail, '程序在这里发生了一个意外 但你完全可以放任不管')
   const reading = await strictStage('book-reading', {
     system: PROMPTS.bookReading,
     user: JSON.stringify({ head, answer }), maxTokens: 220, temperature: 0.95, signal,
@@ -370,7 +370,7 @@ export async function composeBookMeeting({ card, signal } = {}) {
 }
 
 export async function generateEmptySentence({ previousSentence, seed, signal } = {}) {
-  const previous = edgeText(previousSentence || seed, '一切从这里开始')
+  const previous = edgeText(previousSentence || seed, '程序在这里发生了一个意外 但你完全可以放任不管')
   const result = await strictStage('empty-next', {
     system: PROMPTS.emptyNext,
     user: JSON.stringify({ previous }), maxTokens: 100, temperature: 1.15, signal,

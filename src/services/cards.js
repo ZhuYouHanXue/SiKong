@@ -11,7 +11,7 @@ export const CARD_TYPES = {
   EMPTY: 'empty',
 }
 
-const MAX_HEAD_LENGTH = 20
+const MAX_HEAD_LENGTH = 28
 export const normalizeCardHead = (value) =>
   Array.from(String(value ?? '')).slice(0, MAX_HEAD_LENGTH).join('')
 
@@ -35,8 +35,8 @@ export function normalizeCard(raw, fallback = {}) {
   const lines = Array.isArray(content.lines)
     ? content.lines.map((line) => truncate(String(line ?? '').replace(/\s+/g, ' ').trim(), 20)).filter(Boolean).slice(0, 12)
     : []
-  const input = truncate(String(source.head ?? source.input ?? content.seed ?? fallback.head ?? fallback.seed ?? '').replace(/\s+/g, ' ').trim(), 20)
-  const tail = truncate(String(source.tail ?? source.nextTail ?? lines.at(-1) ?? input).replace(/\s+/g, ' ').trim(), 20)
+  const input = truncate(String(source.head ?? source.input ?? content.seed ?? fallback.head ?? fallback.seed ?? '程序在这里发生了一个意外 但你完全可以放任不管').replace(/\s+/g, ' ').trim(), 28)
+  const tail = truncate(String(source.tail ?? source.nextTail ?? lines.at(-1) ?? input).replace(/\s+/g, ' ').trim(), 28)
   const surface = source.surface && typeof source.surface === 'object'
     ? {
         tailReading: truncate(String(source.surface.tailReading ?? '').replace(/\s+/g, ' ').trim(), 420),
@@ -161,7 +161,7 @@ export async function markCardMeetingRevealed(cardId, { signal } = {}) {
 
 /** Create one independent card. No history is sent to the server. */
 export async function createCard({ head, type, index = 0, signal }) {
-  const safeHead = truncate(String(head ?? '').replace(/\s+/g, ' ').trim(), 20)
+  const safeHead = truncate(String(head ?? '').replace(/\s+/g, ' ').trim(), 28)
   const cardType = type ?? CARD_TYPES.SAND_SEA
   if (!apiBaseUrl) throw new Error('司空接口服务不可用')
 

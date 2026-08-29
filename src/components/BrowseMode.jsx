@@ -92,7 +92,7 @@ function BrowseMode({
   const savedCardsDrawerRef = useRef(null)
   const savedCardRequestRef = useRef(savedCardRequest)
   const lastSavedCardTokenRef = useRef(null)
-  const MAX_HEAD_LENGTH = 20
+  const MAX_HEAD_LENGTH = 28
   const truncateHead = useCallback((value) => Array.from(String(value ?? '')).slice(0, MAX_HEAD_LENGTH).join(''), [])
   const browseInputLength = Array.from(searchInput).length
   const isBrowseOverLimit = browseInputLength > MAX_HEAD_LENGTH
@@ -622,7 +622,7 @@ function BrowseMode({
     const overLimit = Array.from(searchInput).length > MAX_HEAD_LENGTH
     if (overLimit) {
       setShowBrowseSuggestions(false)
-      setBrowseSearchHint('太多了，先控制在20字以内')
+      setBrowseSearchHint('太多了，先控制在28字以内')
       return
     }
     const trimmed = searchInput.trim()

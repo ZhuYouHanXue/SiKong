@@ -28,7 +28,7 @@ const glyphs = [
   { text: '辶', className: 'glyph glyph--walk' },
 ]
 
-const MAX_HEAD_LENGTH = 20
+const MAX_HEAD_LENGTH = 28
 const truncateHead = (value) => Array.from(String(value ?? '')).slice(0, MAX_HEAD_LENGTH).join('')
 
 const departureStarts = [
@@ -255,7 +255,7 @@ function App() {
   const statusText = {
     idle: '一个字，也足以成为起点',
     empty: '请先留下一点已知',
-    'too-long': '太多了，先控制在20字以内',
+    'too-long': '太多了，先控制在28字以内',
   }[status]
   if (activeSeed && !transition) {
     return (

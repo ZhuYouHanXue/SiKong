@@ -38,7 +38,7 @@ const composeCard = cardsLib.composeCard
 const composeExplanation = cardsLib.composeExplanation
 const composeBlindPoemMeeting = cardsLib.composeBlindPoemMeeting
 const composeBookMeeting = cardsLib.composeBookMeeting
-const edgeText = cardsLib.edgeText || ((value, fallback = '') => Array.from(String(value || fallback).trim()).slice(0, 20).join(''))
+const edgeText = cardsLib.edgeText || ((value, fallback = '') => Array.from(String(value || fallback).trim()).slice(0, 28).join(''))
 
 // Card store is bounded and exists only for canonical explanation, streaming and saving.
 const cards = new Map()
@@ -210,7 +210,7 @@ function sendJSON(response, status, data) {
 function publicError(error) {
   if (error?.code === 'PAYLOAD_TOO_LARGE') return '请求内容过大。'
   if (error?.code === 'INVALID_JSON') return '请求体不是合法 JSON。'
-  if (error?.code === 'HEAD_TOO_LONG') return '卡片的头不能超过20字。'
+  if (error?.code === 'HEAD_TOO_LONG') return '卡片的头不能超过28字。'
   if (error?.code === 'MODEL_NOT_CONFIGURED') return '模型未配置，请先在设置中填写 API Key。'
   if (error?.code === 'INVALID_MODEL_SCHEMA') return '模型返回的内容不符合要求，请稍后重试。'
   if (isAbort(error)) return '请求已取消。'
@@ -259,7 +259,7 @@ function normalizeCard(raw, fallback) {
   const source = copy(raw || {}) || {}
   const type = CARD_META[source.type] ? source.type : fallback.type
   const [typeName, typeNote] = CARD_META[type] || ['司空', '意外探索']
-  const head = edgeText(source.head || source.input || fallback.head, '未知起点')
+  const head = edgeText(source.head || source.input || fallback.head, '程序在这里发生了一个意外 但你完全可以放任不管')
   const content = source.content && typeof source.content === 'object' ? { ...source.content } : {}
   content.lines = Array.isArray(content.lines) ? content.lines.map(line => edgeText(line)).filter(Boolean).slice(0, MAX_EMPTY_SENTENCES) : []
   content.seed = head
@@ -327,7 +327,7 @@ async function explain(card, signal) {
 }
 
 function savedCardSnapshot(card) {
-  const head = edgeText(card.head || card.input)
+  const head = edgeText(card.head || card.input, '程序在这里发生了一个意外 但你完全可以放任不管')
   const tail = edgeText(card.tail, head)
   const surface = card.surface && typeof card.surface === 'object'
     ? {
@@ -569,8 +569,8 @@ async function handleAPI(request, response, url) {
       const body = await readBody(request, context.signal)
       const rawHead = clean(body.head)
       if (!rawHead) return sendJSON(response, 400, { error: '请提供卡片的头' })
-      if (Array.from(rawHead).length > 20 || /[\r\n]/u.test(String(body.head))) {
-        return sendJSON(response, 400, { error: '卡片的头不能超过20字' })
+      if (Array.from(rawHead).length > 28 || /[\r\n]/u.test(String(body.head))) {
+        return sendJSON(response, 400, { error: '卡片的头不能超过28字' })
       }
       const head = edgeText(rawHead)
       const type = CARD_META[body.type] ? body.type : CARD_TYPES.SAND_SEA

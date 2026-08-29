@@ -62,8 +62,8 @@ function assertCardShape(card, type) {
   assert.ok(card.id)
   assert.equal(card.head, card.input)
   assert.ok(card.head && card.tail)
-  assert.ok(lengthOf(card.head) <= 20, `head 超过20字：${card.head}`)
-  assert.ok(lengthOf(card.tail) <= 20, `tail 超过20字：${card.tail}`)
+  assert.ok(lengthOf(card.head) <= 28, `head 超过28字：${card.head}`)
+  assert.ok(lengthOf(card.tail) <= 28, `tail 超过28字：${card.tail}`)
   assert.equal(/[\r\n]/u.test(card.head + card.tail), false)
   assert.ok(card.time && card.createdAt)
   assert.equal(card.explanation, null)
@@ -104,10 +104,10 @@ try {
 
   const tooLong = await request('/cards', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ head: '一二三四五六七八九十一二三四五六七八九十一', type: 'sand-sea' }),
+    body: JSON.stringify({ head: '一二三四五六七八九十'.repeat(3), type: 'sand-sea' }),
   })
   assert.equal(tooLong.response.status, 400)
-  assert.match(tooLong.payload.error, /20/)
+  assert.match(tooLong.payload.error, /28/)
 
   const noModel = await request('/cards', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },

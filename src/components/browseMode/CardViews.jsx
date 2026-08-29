@@ -554,7 +554,7 @@ export function CardScene({
           onPointerDown={(event) => event.stopPropagation()}
         >
           <header className="card-header">
-            <span>{card.head || card.input || '未知起点'}</span>
+            <span>{card.head || card.input || '程序在这里发生了一个意外 但你完全可以放任不管'}</span>
             <span>
               本卡片由<em>⌜{CARD_DISPLAY_NAMES[card.type] ?? card.typeName}⌟</em>引擎生成
             </span>

@@ -77,7 +77,7 @@ function llmContent(system, user) {
     assertExactKeys(input, ['words'], '尔反取反')
     return { pairs: input.words.map((source, index) => ({ source, opposite: `反向词${index + 1}` })) }
   }
-  if (system.includes('话题联想与发生器')) {
+  if (system.includes('话题联想器')) {
     if (Object.keys(input).length === 0) {
       assertExactKeys(input, [], '沙海')
       return { topic: '独立潮汐钟', reading: '一座只属于潮汐的钟，把没人听见的时间重新排成一条小路。' }
@@ -118,7 +118,7 @@ function llmContent(system, user) {
     assertExactKeys(input, ['head', 'answer'], '全书相遇解释')
     return { explanation: '这页书正好从你原本的问题旁边经过。' }
   }
-  if (system.includes('意外相遇写作者')) {
+  if (system.includes('意外联想器')) {
     assertExactKeys(input, ['head', 'tail'], '何以相遇')
     return { title: '雨夜交换路灯', story: '它们在雨夜交换了各自的路灯。' }
   }
@@ -224,7 +224,7 @@ function identify(call) {
   const system = call.system
   if (system.includes('错听器')) return 'magic-mishear'
   if (system.includes('拆字器')) return 'unruled-decompose'
-  if (system.includes('话题联想与发生器')) return call.input && Object.keys(call.input).length === 0
+  if (system.includes('话题联想器')) return call.input && Object.keys(call.input).length === 0
     ? 'sand-topic'
     : Object.hasOwn(call.input, 'heardAs') ? 'magic-topic'
       : Object.hasOwn(call.input, 'images') ? 'unruled-topic' : 'reverse-topic'
@@ -233,15 +233,15 @@ function identify(call) {
   if (system.includes('负责写下句')) return 'poem-second'
   if (system.includes('双盲诗解释器')) return 'poem-meeting'
   if (system.includes('答案之书解释器')) return 'book-meeting'
-  if (system.includes('意外相遇写作者')) return 'human-story'
+  if (system.includes('意外联想器')) return 'human-story'
   if (system.includes('只能记住上一句')) return 'empty-next'
   if (system.includes('答案之书。')) return 'book-draw'
   return 'unknown'
 }
 
 function assertEdge(card) {
-  assert.ok(codePointLength(card.head) <= 20)
-  assert.ok(codePointLength(card.tail) <= 20)
+  assert.ok(codePointLength(card.head) <= 28)
+  assert.ok(codePointLength(card.tail) <= 28)
   assert.equal(/[\r\n]/u.test(card.head + card.tail), false)
 }
 
@@ -440,7 +440,7 @@ try {
   })
   assert.equal(legacy.response.status, 404)
 
-  console.log('司空 mock 契约测试通过：七类调用次数、严格 schema、上下文隔离、20字边界、本地机制链、空卡权威状态与 entropy 幂等均正常。')
+  console.log('司空 mock 契约测试通过：七类调用次数、严格 schema、上下文隔离、28字边界、本地机制链、空卡权威状态与 entropy 幂等均正常。')
 } catch (error) {
   if (serverLogs.trim()) console.error(serverLogs.trim())
   throw error

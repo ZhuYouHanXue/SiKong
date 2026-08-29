@@ -76,7 +76,7 @@ function drawTree(ctx, w, h, journey, currentNodeId) {
       depth.set(kid.id, d)
       const jitter = (rand(kid.id) - 0.5) * 2 * Math.max(0.03, 0.14 * Math.pow(0.9, d))
       let kidAngle = start + acc + sub / 2 + jitter
-      kidAngle = Math.max(Math.PI * 0.05, Math.min(Math.PI * 0.55, kidAngle))
+      kidAngle = Math.max(Math.PI * 0.05, Math.min(Math.PI * 0.47, kidAngle))
       const len = baseLen * Math.pow(0.84, d) + (rand(kid.id, 'len') - 0.5) * baseLen * 0.2
       const kx = x + Math.cos(kidAngle) * len
       const ky = y + Math.sin(kidAngle) * len
@@ -100,8 +100,9 @@ function drawTree(ctx, w, h, journey, currentNodeId) {
   const boxW = Math.max(1, maxX - minX)
   const boxH = Math.max(1, maxY - minY)
   const fitScale = Math.min((w * 0.85) / boxW, (h * 0.85) / boxH)
-  const MAX_SCALE = 2.6
-  const scale = Math.min(fitScale, MAX_SCALE)
+  const maxDepth = Math.max(...depth.values())
+  const depthFactor = Math.max(0.25, Math.min(1, maxDepth / 7))
+  const scale = fitScale * depthFactor
   const toX = (x) => pad + (x - minX) * scale
   const toY = (y) => h - pad - (y - minY) * scale
 

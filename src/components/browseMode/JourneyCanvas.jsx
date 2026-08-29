@@ -107,7 +107,8 @@ function drawTree(ctx, w, h, journey, currentNodeId) {
       const jitter = (rand(kid.id, 'jit') - 0.5) * 0.04
       let kidAngle = baseAngle + offset + jitter
       kidAngle = Math.max(minAngle, Math.min(maxAngle, kidAngle))
-      const len = baseLen * Math.pow(0.84, d) + (rand(kid.id, 'len') - 0.5) * baseLen * 0.18
+      let len = baseLen * Math.pow(0.9, d) + (rand(kid.id, 'len') - 0.5) * baseLen * 0.14
+      len = Math.max(10, len)
       const kx = x + Math.cos(kidAngle) * len
       const ky = y + Math.sin(kidAngle) * len
       layout(kid.id, kidAngle, kx, ky)

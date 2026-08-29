@@ -949,6 +949,9 @@ function BrowseMode({
     onModeChange?.('new')
   }, [card, discardEmptyTask, onModeChange, onSearchInputChange, truncateHead])
 
+  const currentNode = getNode(journeyRef.current, currentNodeIdRef.current)
+  const canExtend = !currentNode || currentNode.childrenIds.length === 0
+
   return (
     <>
     <div className={`browse browse--${mode} browse--${stage}`}>
@@ -1102,6 +1105,7 @@ function BrowseMode({
           onEmptyRevealComplete={handleEmptyRevealComplete}
           onEmptyContinue={handleEmptyContinue}
           onNewBranch={handleNewBranch}
+          canExtend={canExtend}
         />
       )}
 

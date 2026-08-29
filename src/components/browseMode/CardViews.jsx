@@ -418,6 +418,7 @@ export function CardScene({
   onEmptyRevealComplete,
   onEmptyContinue,
   onNewBranch,
+  canExtend = true,
 }) {
   const gestureRef = useRef(null)
   const wasShowingRelationRef = useRef(showingRelation)
@@ -457,7 +458,7 @@ export function CardScene({
     .join(' ')
 
   const handlePointerDown = (event) => {
-    if (stage !== 'active' || !event.isPrimary || mode !== 'explore' || emptyStreamBusy) return
+    if (!canExtend || stage !== 'active' || !event.isPrimary || mode !== 'explore' || emptyStreamBusy) return
 
     const target = event.target
     const interactive =
@@ -598,7 +599,7 @@ export function CardScene({
                 何以相遇
               </button>
             )}
-            <button type="button" onClick={onAvoid} disabled={emptyStreamBusy || mode === 'new'}>
+            <button type="button" onClick={onAvoid} disabled={emptyStreamBusy || mode === 'new' || !canExtend}>
               避开
             </button>
             <button
@@ -608,7 +609,7 @@ export function CardScene({
             >
               {saved ? '已留印' : '留印'}
             </button>
-            {mode !== 'new' && <button className="card-actions__next" type="button" onClick={onNext} disabled={emptyStreamBusy}>
+            {canExtend && mode !== 'new' && <button className="card-actions__next" type="button" onClick={onNext} disabled={emptyStreamBusy}>
               {mode === 'stay' ? '再遇一则' : '继续探索'} <span aria-hidden="true">↑</span>
             </button>}
           </div>

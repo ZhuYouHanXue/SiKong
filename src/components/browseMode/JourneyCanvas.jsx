@@ -90,23 +90,21 @@ function drawTree(ctx, w, h, journey, currentNodeId) {
     let available = slotOffsets.slice()
     for (let idx = 0; idx < kids.length; idx += 1) {
       const kid = kids[idx]
-      let focus
-      let sharp
+      let kidAngle
       if (idx === 0) {
         const drift = baseAngle - targetAngle
-        focus = targetAngle - baseAngle
-        sharp = 0.6 + 9 * Math.min(1, Math.abs(drift) / (0.35 * Math.PI))
+        const steer = Math.max(-0.45, Math.min(0.45, -drift * 0.6))
+        const bend = (rand(kid.id, 'bend') - 0.5) * ((16 * Math.PI) / 180)
+        kidAngle = baseAngle + steer + bend
+        kidAngle = Math.max(minAngle, Math.min(maxAngle, kidAngle))
       } else {
-        focus = 0
-        sharp = 0.5
+        const offset = pickSlot(available, kid.id, 0, 0.5)
+        available = available.filter((o) => Math.abs(o - offset) > 0.001)
+        kidAngle = baseAngle + offset + (rand(kid.id, 'jit') - 0.5) * 0.04
+        kidAngle = Math.max(minAngle, Math.min(maxAngle, kidAngle))
       }
-      const offset = pickSlot(available, kid.id, focus, sharp)
-      available = available.filter((o) => Math.abs(o - offset) > 0.001)
       const d = (depth.get(id) ?? 0) + 1
       depth.set(kid.id, d)
-      const jitter = (rand(kid.id, 'jit') - 0.5) * 0.04
-      let kidAngle = baseAngle + offset + jitter
-      kidAngle = Math.max(minAngle, Math.min(maxAngle, kidAngle))
       let len = baseLen * Math.pow(0.9, d) + (rand(kid.id, 'len') - 0.5) * baseLen * 0.14
       len = Math.max(10, len)
       const kx = x + Math.cos(kidAngle) * len

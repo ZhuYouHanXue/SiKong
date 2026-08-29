@@ -64,6 +64,14 @@ export function getChildren(journey, nodeId) {
   return node.childrenIds.map((id) => journey.nodes.get(id)).filter(Boolean)
 }
 
+export function findNodeByCardId(journey, cardId) {
+  if (!journey || !cardId) return null
+  for (const node of journey.nodes.values()) {
+    if (node.card?.id === cardId) return node
+  }
+  return null
+}
+
 export function isReadonly(journey, nodeId) {
   return getNode(journey, nodeId)?.readonly === true
 }

@@ -30,6 +30,16 @@ import { shuffle, wait } from './browseMode/utils.js'
 import { LoadingScene, SearchGlyphBuffer } from './browseMode/LoadingScenes.jsx'
 import { CardScene } from './browseMode/CardViews.jsx'
 import { useCandidateHighlights } from '../hooks/useCandidateHighlights.js'
+import {
+  createJourney,
+  engineSibling,
+  endJourney,
+  exploreNext,
+  findNodeByCardId,
+  getNode,
+  markReadonly,
+  replaceNode,
+} from '../services/journey.js'
 
 function BrowseMode({
   seed,
@@ -92,6 +102,9 @@ function BrowseMode({
   const savedCardsDrawerRef = useRef(null)
   const savedCardRequestRef = useRef(savedCardRequest)
   const lastSavedCardTokenRef = useRef(null)
+  const journeyRef = useRef(null)
+  const currentNodeIdRef = useRef(null)
+  const journeyIntentRef = useRef('start')
   const MAX_HEAD_LENGTH = 28
   const truncateHead = useCallback((value) => Array.from(String(value ?? '')).slice(0, MAX_HEAD_LENGTH).join(''), [])
   const browseInputLength = Array.from(searchInput).length
@@ -338,6 +351,8 @@ function BrowseMode({
     setExitVector(null)
     setStage('entering')
     actionLockedRef.current = true
+    const journeyNode = findNodeByCardId(journeyRef.current, snapshot.card?.id)
+    if (journeyNode) markReadonly(journeyRef.current, journeyNode.id)
     const entryToken = flowTokenRef.current
     // 等待一次绘制后再开始计时，避免 React 提交新卡片与入场动画
     // 的起点之间消耗掉极短的一段时间。
@@ -384,6 +399,29 @@ function BrowseMode({
     },
     [],
   )
+
+  const recordJourney = useCallback((nextCard) => {
+    const intent = journeyIntentRef.current
+    journeyIntentRef.current = 'start'
+    let journey = journeyRef.current
+    if (intent === 'start' || !journey) {
+      if (journey) endJourney(journey)
+      journey = createJourney(nextCard)
+      journeyRef.current = journey
+      const firstNode = getNode(journey, journey.rootId)?.childrenIds?.[0]
+      currentNodeIdRef.current = firstNode || journey.rootId
+      return
+    }
+    if (intent === 'exploreNext') {
+      const node = exploreNext(journey, currentNodeIdRef.current, nextCard)
+      if (node) currentNodeIdRef.current = node.id
+    } else if (intent === 'engineSibling') {
+      const node = engineSibling(journey, currentNodeIdRef.current, nextCard)
+      if (node) currentNodeIdRef.current = node.id
+    } else if (intent === 'replace') {
+      replaceNode(journey, currentNodeIdRef.current, nextCard)
+    }
+  }, [])
 
   const beginCardFlow = useCallback(
     async ({
@@ -452,6 +490,7 @@ function BrowseMode({
           feedback: null,
         })
         setCard(nextCard)
+        recordJourney(nextCard)
         setStage('loading-out')
         await wait(LOADER_FADE_DURATION)
 
@@ -533,6 +572,10 @@ function BrowseMode({
         saved: true,
         feedback: null,
       })
+      if (journeyRef.current) endJourney(journeyRef.current)
+      journeyRef.current = createJourney(presetCard)
+      const firstNode = getNode(journeyRef.current, journeyRef.current.rootId)?.childrenIds?.[0]
+      currentNodeIdRef.current = firstNode || journeyRef.current.rootId
       setCard(presetCard)
       setStage('loading-out')
       await wait(LOADER_FADE_DURATION)
@@ -554,6 +597,7 @@ function BrowseMode({
 
     if (savedCardRequestRef.current) return
 
+    journeyIntentRef.current = 'start'
     beginCardFlow({
       nextIndex: 0,
       nextType: openingType,
@@ -566,6 +610,7 @@ function BrowseMode({
       explanationControllerRef.current?.abort()
       window.clearTimeout(entryTimerRef.current)
       window.cancelAnimationFrame(entryFrameRef.current)
+      if (journeyRef.current) endJourney(journeyRef.current)
     }
   }, [beginCardFlow, getNextCardType])
 
@@ -588,6 +633,7 @@ function BrowseMode({
     if (restoreCardSnapshot(nextType)) return
     setAwaitingInitialType(false)
     cardTypeRequestRef.current = true
+    journeyIntentRef.current = 'engineSibling'
     beginCardFlow({
       nextIndex: 0,
       nextType,
@@ -603,12 +649,14 @@ function BrowseMode({
 
     searchTransitionRef.current = false
     setSearchTransition(false)
+    if (journeyRef.current) endJourney(journeyRef.current)
+    journeyIntentRef.current = 'start'
     beginCardFlow({
       nextIndex: 0,
       nextType: cardType,
       previousFeedback: null,
     })
-  }, [beginCardFlow, cardType])
+  }, [beginCardFlow, cardType, endJourney])
 
   const handleSearchSubmit = useCallback(async (event) => {
     event.preventDefault()
@@ -722,6 +770,7 @@ function BrowseMode({
         return
       }
 
+      journeyIntentRef.current = mode === 'stay' ? 'replace' : 'exploreNext'
       beginCardFlow({
         nextIndex,
         nextType,
@@ -861,6 +910,7 @@ function BrowseMode({
   }
 
   const handleReturn = () => {
+    if (journeyRef.current) endJourney(journeyRef.current)
     flowTokenRef.current += 1
     if (card?.type === CARD_TYPES.EMPTY) discardEmptyTask(card.id)
     cardRequestControllerRef.current?.abort()

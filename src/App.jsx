@@ -224,6 +224,7 @@ function App() {
     setStatus('loading')
     setSavedCardRequest(null)
     setShowSuggestions(false)
+    setMode('explore')
     setTransition('departing')
   }
 

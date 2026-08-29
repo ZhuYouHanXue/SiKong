@@ -317,6 +317,11 @@
   color: var(--seal);
 }
 
+.browse-search-suggestions button:hover .is-mark,
+.browse-search-suggestions button:focus-visible .is-mark {
+  color: var(--seal);
+}
+
 .browse-search-suggestions button:hover i,
 .browse-search-suggestions button:focus-visible i {
   color: var(--paper);

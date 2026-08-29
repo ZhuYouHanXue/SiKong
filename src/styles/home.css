@@ -533,6 +533,11 @@
   color: var(--seal);
 }
 
+.seed-suggestions button:hover .is-mark,
+.seed-suggestions button:focus-visible .is-mark {
+  color: var(--seal);
+}
+
 .seed-form__meta {
   display: flex;
   justify-content: flex-start;

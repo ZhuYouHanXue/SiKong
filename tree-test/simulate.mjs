@@ -70,7 +70,10 @@ writeFileSync(
 )
 
 // SVG for quick viewing
-const lines = layout.edges.map((e) => `<line x1="${e.x1.toFixed(1)}" y1="${e.y1.toFixed(1)}" x2="${e.x2.toFixed(1)}" y2="${e.y2.toFixed(1)}" stroke="rgba(0,0,0,0.5)" stroke-width="${e.width.toFixed(1)}" stroke-linecap="round"/>`).join('')
+const lines = layout.edges.map((e) => {
+  const points = e.poly.map((p) => `${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(' ')
+  return `<polygon points="${points}" fill="rgba(0,0,0,0.42)" stroke="none"/>`
+}).join('')
 let marks = ''
 for (const node of layout.nodes) {
   const isCurrent = node.id === currentId

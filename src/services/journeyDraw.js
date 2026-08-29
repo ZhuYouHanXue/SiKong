@@ -1,6 +1,7 @@
 /* 旅程枯枝红花渲染核心：纯 Canvas 绘制。供 JourneyCanvas 与离线测试页复用。 */
 
 const INK_COLOR = 'rgba(0, 0, 0, 0.5)'
+const INK_FILL = 'rgba(0, 0, 0, 0.42)'
 const SEAL = '#c20c0c'
 const SEAL_SOFT = 'rgba(194, 12, 12, 0.7)'
 const SEAL_TITLE = 'rgba(194, 12, 12, 0.9)'
@@ -51,6 +52,40 @@ function drawBlossom(ctx, x, y, r) {
   ctx.beginPath()
   ctx.arc(x, y, r * 0.28, 0, Math.PI * 2)
   ctx.fill()
+}
+
+function brushPolygon(x1, y1, x2, y2, width) {
+  const dx = x2 - x1
+  const dy = y2 - y1
+  const len = Math.hypot(dx, dy)
+  if (len < 1) return [[x1, y1], [x2, y2]]
+  const ux = dx / len
+  const uy = dy / len
+  const px = -uy
+  const py = ux
+  const startW = Math.max(1, width)
+  const endW = Math.max(0.5, width * 0.22)
+  const segments = Math.max(6, Math.min(30, Math.round(len / 7)))
+  const left = []
+  const right = []
+  for (let i = 0; i <= segments; i += 1) {
+    const t = i / segments
+    const cx = x1 + dx * t
+    const cy = y1 + dy * t
+    const seed = `${x1}:${y1}:${i}`
+    const edgeJit = (rand(seed, 'e') - 0.5) * Math.max(0.6, width * 0.28)
+    const sway = (rand(seed, 's') - 0.5) * Math.max(0.5, width * 0.22) * t
+    const w = startW + (endW - startW) * t
+    left.push([
+      cx + (px * (w / 2)) + (ux * sway) + (px * edgeJit),
+      cy + (py * (w / 2)) + (uy * sway) + (py * edgeJit),
+    ])
+    right.push([
+      cx - (px * (w / 2)) + (ux * sway) - (px * edgeJit),
+      cy - (py * (w / 2)) + (uy * sway) - (py * edgeJit),
+    ])
+  }
+  return [...left, ...right.reverse()]
 }
 
 export function computeJourneyLayout(journey, w, h) {
@@ -157,7 +192,11 @@ export function computeJourneyLayout(journey, w, h) {
     if (!a || !b) continue
     const sz = size.get(id) || 1
     const width = Math.min(26, Math.max(1.2, (0.35 + 2.6 * Math.log1p(sz)) * scale))
-    edges.push({ x1: toX(a.x), y1: toY(a.y), x2: toX(b.x), y2: toY(b.y), width })
+    const x1 = toX(a.x)
+    const y1 = toY(a.y)
+    const x2 = toX(b.x)
+    const y2 = toY(b.y)
+    edges.push({ x1, y1, x2, y2, width, poly: brushPolygon(x1, y1, x2, y2, width) })
   }
   return { nodes, edges, scale }
 }
@@ -167,14 +206,14 @@ export function drawJourney(ctx, journey, w, h, currentNodeId) {
   if (!journey) return
   const { nodes, edges, scale } = computeJourneyLayout(journey, w, h)
 
-  ctx.lineCap = 'round'
   for (const edge of edges) {
-    ctx.lineWidth = edge.width
-    ctx.strokeStyle = INK_COLOR
+    const poly = edge.poly
+    ctx.fillStyle = INK_FILL
     ctx.beginPath()
-    ctx.moveTo(edge.x1, edge.y1)
-    ctx.lineTo(edge.x2, edge.y2)
-    ctx.stroke()
+    ctx.moveTo(poly[0][0], poly[0][1])
+    for (let i = 1; i < poly.length; i += 1) ctx.lineTo(poly[i][0], poly[i][1])
+    ctx.closePath()
+    ctx.fill()
   }
 
   ctx.textAlign = 'left'

@@ -9,13 +9,13 @@ $g.SmoothingMode = 'AntiAlias'
 $g.TextRenderingHint = 'AntiAlias'
 $g.Clear([System.Drawing.Color]::White)
 
-$ink = New-Object System.Drawing.Pen([System.Drawing.Color]::FromArgb(128, 0, 0, 0), 1)
+$inkBrush = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(107, 0, 0, 0))
 foreach ($e in $data.edges) {
-  $pen = New-Object System.Drawing.Pen([System.Drawing.Color]::FromArgb(128, 0, 0, 0), [float]$e.width)
-  $pen.StartCap = 'Round'
-  $pen.EndCap = 'Round'
-  $g.DrawLine($pen, [float]$e.x1, [float]$e.y1, [float]$e.x2, [float]$e.y2)
-  $pen.Dispose()
+  $pts = @()
+  foreach ($p in $e.poly) {
+    $pts += [System.Drawing.PointF]::new([float]$p[0], [float]$p[1])
+  }
+  $g.FillPolygon($inkBrush, $pts)
 }
 
 $seal = [System.Drawing.Color]::FromArgb(194, 12, 12)

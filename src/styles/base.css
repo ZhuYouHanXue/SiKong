@@ -1,0 +1,57 @@
+/* 设计变量与全局基础 */
+:root {
+  color: #000000;
+  background: #ffffff;
+  font-family:
+    "Noto Serif SC", "Source Han Serif SC", "Songti SC", SimSun, serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  --ink: #000000;
+  --paper: #ffffff;
+  --seal: #c20c0c;
+  --hairline: 1px solid var(--ink);
+  --hairline-seal: 1px solid var(--seal);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  min-width: 320px;
+  min-height: 100%;
+  margin: 0;
+}
+
+body {
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+button {
+  color: inherit;
+}
+
+::selection {
+  color: var(--paper);
+  background: var(--seal);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

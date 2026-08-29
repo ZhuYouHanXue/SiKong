@@ -1,0 +1,6 @@
+node_modules/
+dist/
+server/.env.local
+server/.env
+server/model-config.json
+server/saved-cards.json

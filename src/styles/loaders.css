@@ -1,0 +1,502 @@
+/* 浏览等待动画 */
+.loading-scene {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: grid;
+  place-items: center;
+  background: var(--paper);
+  opacity: 1;
+  transition: opacity 170ms ease;
+  --loader-cycle-duration: 900ms;
+  --loader-fade-duration: 170ms;
+}
+
+.loading-scene--leaving {
+  opacity: 0;
+}
+
+.loading-scene__body {
+  display: grid;
+  justify-items: center;
+  gap: 24px;
+}
+
+.loading-scene__tip {
+  width: min(72vw, 560px);
+  margin: 0;
+  color: #555;
+  font-size: 13px;
+  letter-spacing: 0.12em;
+  line-height: 1.9;
+  text-align: center;
+  animation: loading-tip-arrive 260ms ease both;
+}
+
+.sand-loader,
+.tone-loader,
+.unruled-loader,
+.blind-loader,
+.book-loader,
+.word-reverse-loader,
+.empty-loader {
+  display: grid;
+  justify-items: center;
+  gap: 26px;
+}
+
+.sand-loader p,
+.tone-loader p,
+.unruled-loader p,
+.blind-loader p,
+.book-loader p,
+.word-reverse-loader p,
+.empty-loader p {
+  margin: 0;
+  font-size: 10px;
+  letter-spacing: 0.32em;
+}
+
+.sand-loader__grid {
+  display: grid;
+  grid-template-columns: repeat(3, 42px);
+  grid-template-rows: repeat(3, 42px);
+  place-items: center;
+  animation: loader-cycle-fade var(--loader-cycle-duration) linear both;
+}
+
+.sand-loader__glyph {
+  color: var(--ink);
+  font-size: 22px;
+  line-height: 1;
+  opacity: 0;
+  transform: translateY(5px);
+  animation: sand-glyph-arrive 270ms ease forwards;
+  animation-delay: calc(var(--order) * 67ms);
+}
+
+.sand-loader__glyph--marked {
+  display: grid;
+  place-items: center;
+  min-width: 29px;
+  min-height: 29px;
+  color: var(--paper);
+  background: var(--seal);
+}
+
+.tone-loader__cycle {
+  position: relative;
+  width: 190px;
+  height: 160px;
+  animation: loader-cycle-fade var(--loader-cycle-duration) linear both;
+}
+
+.tone-loader__spiral {
+  position: absolute;
+  top: 0;
+  left: 15px;
+  width: 160px;
+  height: 160px;
+  --spiral-horizontal: 3px;
+  --spiral-vertical: 4px;
+  --spiral-terminal: 7px;
+}
+
+.spiral-segment {
+  position: absolute;
+  display: block;
+  background: var(--ink);
+  opacity: 0;
+  animation: spiral-line-arrive 231ms ease forwards;
+  animation-delay: calc(var(--order) * 80ms);
+}
+
+.spiral-segment::after {
+  position: absolute;
+  display: block;
+  background: var(--ink);
+  content: "";
+}
+
+.spiral-segment--one,
+.spiral-segment--three,
+.spiral-segment--five,
+.spiral-segment--seven {
+  height: var(--spiral-horizontal);
+}
+
+.spiral-segment--two,
+.spiral-segment--four,
+.spiral-segment--six,
+.spiral-segment--eight {
+  width: var(--spiral-vertical);
+}
+
+.spiral-segment--one::after,
+.spiral-segment--five::after {
+  top: calc((var(--spiral-horizontal) - var(--spiral-terminal)) / 2);
+  right: -3px;
+  width: var(--spiral-terminal);
+  height: var(--spiral-terminal);
+  clip-path: polygon(0 27%, 62% 0, 100% 50%, 62% 100%, 0 73%);
+}
+
+.spiral-segment--three::after,
+.spiral-segment--seven::after {
+  top: calc((var(--spiral-horizontal) - var(--spiral-terminal)) / 2);
+  left: -3px;
+  width: var(--spiral-terminal);
+  height: var(--spiral-terminal);
+  clip-path: polygon(100% 27%, 38% 0, 0 50%, 38% 100%, 100% 73%);
+}
+
+.spiral-segment--two::after,
+.spiral-segment--six::after {
+  top: -3px;
+  left: calc((var(--spiral-vertical) - var(--spiral-terminal)) / 2);
+  width: var(--spiral-terminal);
+  height: var(--spiral-terminal);
+  clip-path: polygon(50% 0, 100% 38%, 73% 100%, 27% 100%, 0 38%);
+}
+
+.spiral-segment--four::after,
+.spiral-segment--eight::after {
+  bottom: -3px;
+  left: calc((var(--spiral-vertical) - var(--spiral-terminal)) / 2);
+  width: var(--spiral-terminal);
+  height: var(--spiral-terminal);
+  clip-path: polygon(27% 0, 73% 0, 100% 62%, 50% 100%, 0 62%);
+}
+
+.spiral-segment--one {
+  top: 79px;
+  left: 72px;
+  width: 16px;
+  transform-origin: left;
+}
+
+.spiral-segment--two {
+  top: 60px;
+  left: 86px;
+  height: 19px;
+  transform-origin: bottom;
+}
+
+.spiral-segment--three {
+  top: 58px;
+  left: 56px;
+  width: 32px;
+  transform-origin: right;
+}
+
+.spiral-segment--four {
+  top: 59px;
+  left: 54px;
+  height: 35px;
+  transform-origin: top;
+}
+
+.spiral-segment--five {
+  top: 93px;
+  left: 55px;
+  width: 48px;
+  transform-origin: left;
+}
+
+.spiral-segment--six {
+  top: 44px;
+  left: 101px;
+  height: 50px;
+  transform-origin: bottom;
+}
+
+.spiral-segment--seven {
+  top: 42px;
+  left: 39px;
+  width: 64px;
+  transform-origin: right;
+}
+
+.spiral-segment--eight {
+  top: 43px;
+  left: 37px;
+  height: 67px;
+  transform-origin: top;
+}
+
+.tone-loader__phoneme {
+  position: absolute;
+  top: 66px;
+  color: var(--seal);
+  font-size: 19px;
+  opacity: 0;
+  animation: phoneme-arrive 329ms ease forwards;
+}
+
+.tone-loader__phoneme--left {
+  left: 0;
+  animation-delay: 172ms;
+}
+
+.tone-loader__phoneme--right {
+  right: 0;
+  animation-delay: 501ms;
+}
+
+.word-reverse-loader__cycle {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  width: 270px;
+  height: 130px;
+  animation: semantic-loader-cycle var(--loader-cycle-duration) linear both;
+}
+
+.word-reverse-loader__source,
+.word-reverse-loader__result {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  height: 50px;
+}
+
+.word-reverse-loader__source {
+  align-self: start;
+}
+
+.word-reverse-loader__result {
+  align-self: end;
+}
+
+.word-reverse-loader__source span,
+.word-reverse-loader__result span {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  font-size: 22px;
+  line-height: 1;
+}
+
+.word-reverse-loader__source span {
+  opacity: 0;
+  animation: reverse-source-arrive 329ms ease 82ms both;
+}
+
+.word-reverse-loader__rule {
+  position: absolute;
+  top: 63px;
+  left: 18px;
+  width: calc(100% - 36px);
+  height: 1px;
+  background: var(--ink);
+  opacity: 0;
+  animation: reverse-rule-arrive 180ms ease 368ms both;
+}
+
+.word-reverse-loader__result span {
+  color: var(--paper);
+  background: var(--seal);
+  opacity: 0;
+  transform: scaleX(-1) translateY(-5px);
+  animation: reverse-result-arrive 329ms ease 427ms both;
+}
+
+.empty-loader__cycle {
+  position: relative;
+  width: min(84vw, 520px);
+  height: 50px;
+  animation: semantic-loader-cycle var(--loader-cycle-duration) linear both;
+}
+
+.empty-loader__frame {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.empty-loader__frame rect {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: empty-loader-frame-arrive 375ms ease 67ms both;
+}
+
+.empty-loader__glyphs {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 0 18px;
+}
+
+.empty-loader__glyphs span {
+  display: grid;
+  flex: 0 0 30px;
+  width: 30px;
+  place-items: center;
+  color: var(--ink);
+  font-size: clamp(15px, 2.1vw, 22px);
+  line-height: 1;
+  opacity: 0;
+  animation: empty-loader-glyph-arrive 210ms ease
+    calc(225ms + var(--order) * 48ms) both;
+}
+
+.unruled-loader__cycle {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 210px;
+  height: 116px;
+}
+
+.unruled-loader {
+  width: 210px;
+}
+
+.loading-scene:not(.loading-scene--leaving) .unruled-loader__cycle {
+  animation: semantic-loader-cycle
+    calc(var(--loader-cycle-duration) + var(--loader-fade-duration)) linear both;
+}
+
+.unruled-loader__left,
+.unruled-loader__right-track i {
+  display: grid;
+  width: 52px;
+  height: 52px;
+  place-items: center;
+  font-size: 39px;
+  font-style: normal;
+  line-height: 1;
+}
+
+.unruled-loader__left {
+  opacity: 0;
+  animation: unruled-left-arrive 225ms ease 45ms both;
+}
+
+.unruled-loader__right-window {
+  display: block;
+  width: 52px;
+  height: 52px;
+  overflow: hidden;
+}
+
+.unruled-loader__right-track {
+  display: flex;
+  flex-direction: column;
+  animation: radical-roll 660ms cubic-bezier(0.15, 0.7, 0.2, 1) 82ms both;
+}
+
+.unruled-loader__frame {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.unruled-loader__frame rect {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 2.5;
+  vector-effect: non-scaling-stroke;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: unruled-loader-frame-arrive 180ms ease 681ms both;
+}
+
+.blind-loader__cycle {
+  position: relative;
+  width: min(66vw, 340px);
+  height: 116px;
+  animation: semantic-loader-cycle var(--loader-cycle-duration) linear both;
+}
+
+.blind-loader__line {
+  position: absolute;
+  display: flex;
+  gap: 13px;
+  font-size: 20px;
+  line-height: 1;
+  white-space: nowrap;
+  opacity: 0;
+}
+
+.blind-loader__line--upper {
+  top: 17px;
+  left: 0;
+  animation: blind-line-from-left 329ms ease 53ms both;
+}
+
+.blind-loader__line--lower {
+  right: 0;
+  bottom: 17px;
+  animation: blind-line-from-right 329ms ease 368ms both;
+}
+
+.blind-loader__stamp {
+  position: absolute;
+  top: -4px;
+  right: -5px;
+  display: grid;
+  min-width: 31px;
+  height: 31px;
+  padding: 0 4px;
+  place-items: center;
+  color: var(--paper);
+  background: var(--seal);
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1;
+  opacity: 0;
+  animation: loader-stamp-arrive 165ms ease 645ms both;
+}
+
+.book-loader__cycle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 17px;
+  width: 260px;
+  height: 116px;
+  animation: semantic-loader-cycle var(--loader-cycle-duration) linear both;
+}
+
+.book-loader__cycle i {
+  position: relative;
+  display: block;
+  width: 3px;
+  height: 50px;
+  background: var(--ink);
+  opacity: 0;
+  animation: book-line-arrive 165ms ease calc(var(--order) * 48ms) both;
+}
+
+.book-loader__cycle i::before {
+  position: absolute;
+  top: -1px;
+  left: -3px;
+  width: 9px;
+  height: 5px;
+  background: var(--ink);
+  clip-path: polygon(50% 0, 100% 45%, 72% 100%, 28% 100%, 0 45%);
+  content: "";
+}
+
+.book-loader__cycle i.is-extracted {
+  animation:
+    book-line-arrive 165ms ease calc(var(--order) * 48ms) both,
+    book-line-extract 270ms ease 607ms forwards;
+}

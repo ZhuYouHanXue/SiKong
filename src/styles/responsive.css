@@ -1,0 +1,259 @@
+/* 浏览模式响应式覆盖 */
+@media (max-width: 720px) {
+  .browse-topbar {
+    height: 0;
+  }
+
+  .browse-topbar > button {
+    top: 20px;
+    left: 21px;
+  }
+
+  .browse-controls,
+  .browse--new .browse-controls {
+    top: 72px;
+    right: 21px;
+    left: 21px;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    width: auto;
+    max-width: none;
+  }
+
+  .browse-mode-switch {
+    align-self: flex-start;
+  }
+
+  .browse--new .browse-mode-switch {
+    transform: none;
+  }
+
+  .browse-mode-switch button {
+    min-width: 76px;
+  }
+
+  .browse-search-form input {
+    height: 38px;
+    font-size: 16px;
+  }
+
+  .browse-search-form {
+    position: relative;
+    top: auto;
+    right: auto;
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+  }
+
+  .browse-search-form > button {
+    min-width: 78px;
+  }
+
+  .browse-search-suggestions {
+    top: calc(100% + 1px);
+  }
+
+  .browse-search-suggestions button {
+    min-height: 32px;
+    font-size: 13px;
+  }
+
+  .card-type-selector {
+    justify-content: flex-start;
+    margin-right: -2px;
+    padding-bottom: 3px;
+  }
+
+  .card-type-selector button {
+    font-size: 14px;
+  }
+
+  .browse-topbar p {
+    max-width: 42vw;
+    font-size: 8px;
+  }
+
+  .card-scene {
+    padding: 69px 16px 34px;
+  }
+
+  .concept-card {
+    width: calc(100vw - 32px);
+    height: calc(100svh - 124px);
+    min-height: 570px;
+    max-height: 720px;
+  }
+
+  .card-content {
+    inset: 37px 27px 25px;
+  }
+
+  .card-header {
+    gap: 15px;
+    font-size: 10px;
+    letter-spacing: 0.12em;
+  }
+
+  .card-copy {
+    width: 94%;
+  }
+
+  .empty-card-copy {
+    padding-top: 15px;
+    padding-right: 5px;
+  }
+
+  .empty-card-stream {
+    margin-top: 18px;
+    font-size: 16px;
+  }
+
+  .card-copy h2 {
+    font-size: clamp(23px, 7.4vw, 31px);
+    line-height: 1.65;
+  }
+
+  .surface-card-copy__tail {
+    font-size: 16px;
+  }
+
+  .surface-card-copy__meeting p.surface-card-copy__meeting-title {
+    font-size: 16px;
+  }
+
+  .surface-card-copy__reading {
+    margin-top: 18px;
+    font-size: 13px;
+  }
+
+  .surface-card-copy__meeting {
+    gap: 10px;
+    margin-top: 22px;
+  }
+
+  .surface-card-copy__meeting p {
+    font-size: 13px;
+  }
+
+  .card-copy > p {
+    margin-top: 18px;
+    font-size: 11px;
+  }
+
+  .blind-poem {
+    gap: 13px;
+  }
+
+  .blind-poem p {
+    font-size: clamp(16px, 4.8vw, 21px);
+    line-height: 1.7;
+  }
+
+  .blind-poem i {
+    height: 15px;
+  }
+
+  .card-actions {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .card-actions button {
+    min-height: 39px;
+    padding: 0 8px;
+    border-bottom: var(--hairline);
+    font-size: 11px;
+  }
+
+  .card-actions button:nth-child(2) {
+    border-right: 0;
+  }
+
+  .card-actions button:nth-child(3),
+  .card-actions button:nth-child(4) {
+    border-bottom: 0;
+  }
+
+  .card-actions__next {
+    justify-self: stretch;
+  }
+
+  .card-phonetics {
+    top: 32%;
+    left: -10px;
+    gap: 7px;
+    padding: 6px 3px;
+    background: var(--paper);
+    font-size: 12px;
+  }
+
+  .card-phonetics i {
+    height: 15px;
+  }
+
+  .relation-panel {
+    inset: 37px 0 79px;
+    padding: 24px 5%;
+  }
+
+  .relation-panel ol {
+    gap: 13px;
+    font-size: 15px;
+  }
+
+  .relation-panel__title {
+    font-size: 18px;
+  }
+  .relation-panel__section h3 {
+    font-size: 15px;
+  }
+  .relation-panel__meeting-heading {
+    font-size: 18px;
+  }
+  .relation-panel__reading p,
+  .relation-panel__status,
+  .relation-panel__explanation,
+  .relation-panel__meeting-poem-lines p,
+  .relation-panel__meeting-title-line {
+    font-size: 18px;
+  }
+
+  .save-stamp {
+    top: 14%;
+    right: 8%;
+    width: 58px;
+    height: 58px;
+    font-size: 31px;
+  }
+
+  .sand-loader__grid {
+    grid-template-columns: repeat(3, 36px);
+    grid-template-rows: repeat(3, 36px);
+  }
+
+  .blind-loader__cycle {
+    width: min(82vw, 320px);
+  }
+
+  .blind-loader__line {
+    gap: 9px;
+    font-size: 18px;
+  }
+
+  .book-loader__cycle {
+    gap: 13px;
+    width: 220px;
+  }
+}
+
+@media (max-height: 700px) and (min-width: 721px) {
+  .concept-card {
+    height: calc(100svh - 135px);
+    min-height: 430px;
+  }
+
+  .card-copy h2 {
+    font-size: 30px;
+  }
+}

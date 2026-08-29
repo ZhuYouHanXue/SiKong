@@ -225,11 +225,11 @@ export function drawJourney(ctx, journey, w, h, currentNodeId) {
     const isCurrent = node.id === currentNodeId
     ctx.fillStyle = SEAL_SOFT
     ctx.beginPath()
-    ctx.arc(node.x, node.y, isCurrent ? 5 : 2.5, 0, Math.PI * 2)
+    ctx.arc(node.x, node.y, isCurrent ? 6 : 3.5, 0, Math.PI * 2)
     ctx.fill()
     if (node.tail) {
       ctx.fillStyle = SEAL_TITLE
-      ctx.fillText(node.tail, node.x + 6, node.y - 1)
+      ctx.fillText(node.tail, node.x + (isCurrent ? 22 : 6), node.y - 1)
     }
     if (isCurrent) drawBlossom(ctx, node.x, node.y, 14)
   }

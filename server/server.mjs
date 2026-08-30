@@ -480,7 +480,7 @@ async function streamEmpty(response, card, body, context) {
         ? Math.min(1, MAX_EMPTY_SENTENCES - lines.length)
         : Math.max(0, MAX_EMPTY_SENTENCES - lines.length)
     for (let index = 0; index < rounds && !context.signal.aborted; index += 1) {
-      const result = await cardsLib.generateEmptySentence({ previousSentence: previous, signal: context.signal })
+      const result = await cardsLib.generateEmptySentence({ previousSentence: previous, seed: card.head || card.input || initial, signal: context.signal })
       let next = edgeText(result?.sentence || result?.tail, previous)
       mode = result?.mode || 'model'
       if (!next || next === previous) break

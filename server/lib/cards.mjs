@@ -98,7 +98,7 @@ export function tokenizeHead(head) {
 async function generateHumanReading(context, tail) {
   return strictStage('human-story', {
     system: PROMPTS.humanStory,
-    user: JSON.stringify({ head: context.head, tail }), maxTokens: 220, temperature: 1.05, signal: context.signal,
+    user: JSON.stringify({ data: [context.head, tail] }), maxTokens: 220, temperature: 1.05, signal: context.signal,
   }, validateMeetingReading)
 }
 const exactLine = payload => { assertObject(payload, ['line']); return { line: assertEdge(payload.line, 'line') } }
@@ -125,10 +125,10 @@ async function strictStage(name, options, validate) {
   throw lastError
 }
 
-async function generateTopic({ input, signal, stage = 'topic', temperature = 1.15 }) {
+async function generateTopic({ data, signal, stage = 'topic', temperature = 1.15 }) {
   return strictStage(stage, {
     system: PROMPTS.topic,
-    user: JSON.stringify(input || {}),
+    user: JSON.stringify(data === undefined ? {} : { data }),
     maxTokens: 260,
     temperature,
     signal,
@@ -168,7 +168,7 @@ function validateOpposites(payload, words) {
 }
 
 async function generateSand(context) {
-  const random = await generateTopic({ input: {}, signal: context.signal, stage: 'sand-topic', temperature: 1.3 })
+  const random = await generateTopic({ signal: context.signal, stage: 'sand-topic', temperature: 1.3 })
   const tail = edgeText(random.value.topic)
   const meeting = await generateHumanReading(context, tail)
   return {
@@ -182,9 +182,9 @@ async function generateMagicTone(context) {
   const selected = stablePick(words, context.entropy + ':magic-select')
   const mutation = await strictStage('magic-mishear', {
     system: PROMPTS.magicMishear,
-    user: JSON.stringify({ word: selected }), maxTokens: 100, temperature: 1.1, signal: context.signal,
+    user: JSON.stringify({ data: selected }), maxTokens: 100, temperature: 1.1, signal: context.signal,
   }, value => validateMishear(value, selected))
-  const topic = await generateTopic({ input: { heardAs: mutation.value.heardAs }, signal: context.signal, stage: 'magic-topic', temperature: 1.15 })
+  const topic = await generateTopic({ data: mutation.value.heardAs, signal: context.signal, stage: 'magic-topic', temperature: 1.15 })
   const tail = edgeText(topic.value.topic)
   const meeting = await generateHumanReading(context, tail)
   return {
@@ -200,9 +200,9 @@ async function generateUnruled(context) {
   const selected = stablePick(words, context.entropy + ':unruled-select')
   const decomposition = await strictStage('unruled-decompose', {
     system: PROMPTS.unruledDecompose,
-    user: JSON.stringify({ word: selected }), maxTokens: 260, temperature: 1.1, signal: context.signal,
+    user: JSON.stringify({ data: selected }), maxTokens: 260, temperature: 1.1, signal: context.signal,
   }, validateUnruled)
-  const topic = await generateTopic({ input: { images: decomposition.value.images }, signal: context.signal, stage: 'unruled-topic', temperature: 1.15 })
+  const topic = await generateTopic({ data: decomposition.value.images, signal: context.signal, stage: 'unruled-topic', temperature: 1.15 })
   const tail = edgeText(topic.value.topic)
   const meeting = await generateHumanReading(context, tail)
   return {
@@ -218,10 +218,10 @@ async function generateReverse(context) {
   const words = context.tokens.map(item => item.text)
   const reversed = await strictStage('reverse-words', {
     system: PROMPTS.reverseWords,
-    user: JSON.stringify({ words }), maxTokens: 320, temperature: 0.9, signal: context.signal,
+    user: JSON.stringify({ data: words }), maxTokens: 320, temperature: 0.9, signal: context.signal,
   }, value => validateOpposites(value, words))
   const opposites = reversed.value.pairs.map(item => item.opposite)
-  const topic = await generateTopic({ input: { opposites }, signal: context.signal, stage: 'reverse-topic', temperature: 1.0 })
+  const topic = await generateTopic({ data: opposites, signal: context.signal, stage: 'reverse-topic', temperature: 1.0 })
   const tail = edgeText(topic.value.topic)
   const meeting = await generateHumanReading(context, tail)
   return {
@@ -234,7 +234,7 @@ async function generateReverse(context) {
 async function generateBlindPoem(context) {
   const firstPromise = strictStage('poem-first', {
     system: PROMPTS.poemFirst,
-    user: JSON.stringify({ head: context.head }), maxTokens: 100, temperature: 1.05, signal: context.signal,
+    user: JSON.stringify({ data: context.head }), maxTokens: 100, temperature: 1.05, signal: context.signal,
   }, exactLine)
   const secondPromise = strictStage('poem-second', {
     system: PROMPTS.poemSecond,
@@ -327,7 +327,7 @@ function validateMeetingExplanation(payload) {
 export async function composeExplanation({ card, signal } = {}) {
   const reading = await strictStage('human-story', {
     system: PROMPTS.humanStory,
-    user: JSON.stringify({ head: card?.head, tail: card?.tail }), maxTokens: 220, temperature: 1.05, signal,
+    user: JSON.stringify({ data: [card?.head, card?.tail] }), maxTokens: 220, temperature: 1.05, signal,
   }, validateMeetingReading)
   return {
     humanReading: {
@@ -344,7 +344,7 @@ export async function composeBlindPoemMeeting({ card, signal } = {}) {
   const secondLine = edgeText(card?.content?.lines?.[1] || card?.tail, firstLine)
   const reading = await strictStage('poem-meeting', {
     system: PROMPTS.poemReading,
-    user: JSON.stringify({ firstLine, secondLine }), maxTokens: 220, temperature: 0.95, signal,
+    user: JSON.stringify({ data: [firstLine, secondLine] }), maxTokens: 220, temperature: 0.95, signal,
   }, validateMeetingExplanation)
   return {
     kind: 'blind-poem-meeting',
@@ -359,7 +359,7 @@ export async function composeBookMeeting({ card, signal } = {}) {
   const answer = edgeText(card?.content?.lines?.[0] || card?.tail, '程序在这里发生了一个意外 但你完全可以放任不管')
   const reading = await strictStage('book-reading', {
     system: PROMPTS.bookReading,
-    user: JSON.stringify({ head, answer }), maxTokens: 220, temperature: 0.95, signal,
+    user: JSON.stringify({ data: [head, answer] }), maxTokens: 220, temperature: 0.95, signal,
   }, validateMeetingExplanation)
   return {
     kind: 'book-meeting',
@@ -373,7 +373,7 @@ export async function generateEmptySentence({ previousSentence, seed, signal } =
   const previous = edgeText(previousSentence || seed, '程序在这里发生了一个意外 但你完全可以放任不管')
   const result = await strictStage('empty-next', {
     system: PROMPTS.emptyNext,
-    user: JSON.stringify({ previous }), maxTokens: 100, temperature: 1.15, signal,
+    user: JSON.stringify({ data: previous }), maxTokens: 100, temperature: 1.15, signal,
   }, exactSentence)
   const sentence = edgeText(result.value.sentence, previous)
   return { sentence, tail: sentence, mode: result.mode, attempts: result.attempts }

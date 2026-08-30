@@ -65,41 +65,41 @@ function llmContent(system, user) {
   const input = parseUser(user)
 
   if (system.includes('错听器')) {
-    assertExactKeys(input, ['word'], '湮律错听')
+    assertExactKeys(input, ['data'], '湮律错听')
     if (invalidMishearSchema) return { heardAs: '越界错听词', leaked: HEAD }
     return { heardAs: '错听岛' }
   }
   if (system.includes('拆字器')) {
-    assertExactKeys(input, ['word'], '不守拆字')
+    assertExactKeys(input, ['data'], '不守拆字')
     return { parts: [{ form: '木', image: '会呼吸的门' }], images: ['会呼吸的门'] }
   }
   if (system.includes('逐词取反器')) {
-    assertExactKeys(input, ['words'], '尔反取反')
-    return { pairs: input.words.map((source, index) => ({ source, opposite: `反向词${index + 1}` })) }
+    assertExactKeys(input, ['data'], '尔反取反')
+    return { pairs: input.data.map((source, index) => ({ source, opposite: `反向词${index + 1}` })) }
   }
   if (system.includes('话题联想器')) {
     if (Object.keys(input).length === 0) {
       assertExactKeys(input, [], '沙海')
       return { topic: '独立潮汐钟', reading: '一座只属于潮汐的钟，把没人听见的时间重新排成一条小路。' }
     }
-    if ('heardAs' in input) {
-      assertExactKeys(input, ['heardAs'], '湮律生题')
-      assert.equal(input.heardAs === '错听岛' || typeof input.heardAs === 'string', true)
+    if (typeof input.data === 'string') {
+      assertExactKeys(input, ['data'], '湮律生题')
+      assert.equal(input.data === '错听岛' || typeof input.data === 'string', true)
       return { topic: '错听岛夜航图', reading: '错听之后的海岸线重新发光，夜航图开始标记那些本不该存在的码头。' }
     }
-    if ('images' in input) {
-      assertExactKeys(input, ['images'], '不守生题')
-      assert.deepEqual(input.images, ['会呼吸的门'])
-      return { topic: '会呼吸的门牌', reading: '一扇会呼吸的门，门牌每天换一个方向，像房间在练习怎样迎接陌生人。' }
-    }
-    if ('opposites' in input) {
-      assertExactKeys(input, ['opposites'], '尔反造句')
-      assert.ok(input.opposites.every(word => /^反向词\d+$/u.test(word)))
+    if (input.data?.every?.((word) => /^反向词\d+$/u.test(word))) {
+      assertExactKeys(input, ['data'], '尔反造句')
+      assert.ok(input.data.every((word) => /^反向词\d+$/u.test(word)))
       return { topic: '反向词的清晨', reading: '反向词醒来的清晨，所有习惯都先倒着试一遍，再决定哪条路值得走。' }
+    }
+    if (Array.isArray(input.data)) {
+      assertExactKeys(input, ['data'], '不守生题')
+      assert.deepEqual(input.data, ['会呼吸的门'])
+      return { topic: '会呼吸的门牌', reading: '一扇会呼吸的门，门牌每天换一个方向，像房间在练习怎样迎接陌生人。' }
     }
   }
   if (system.includes('诗化的上句')) {
-    assertExactKeys(input, ['head'], '盲诗上片')
+    assertExactKeys(input, ['data'], '盲诗上片')
     return { line: '旧车票落进雨里' }
   }
   if (system.includes('负责写下句')) {
@@ -111,19 +111,19 @@ function llmContent(system, user) {
     return { line: '今天绕开熟路' }
   }
   if (system.includes('双盲诗解释器')) {
-    assertExactKeys(input, ['firstLine', 'secondLine'], '盲诗相遇解释')
+    assertExactKeys(input, ['data'], '盲诗相遇解释')
     return { explanation: '两行诗在同一个空白处各自醒了过来。' }
   }
   if (system.includes('两个短语')) {
-    assertExactKeys(input, ['head', 'answer'], '全书相遇解释')
+    assertExactKeys(input, ['data'], '全书相遇解释')
     return { explanation: '这页书正好从你原本的问题旁边经过。' }
   }
   if (system.includes('意外联想器')) {
-    assertExactKeys(input, ['head', 'tail'], '何以相遇')
+    assertExactKeys(input, ['data'], '何以相遇')
     return { title: '雨夜交换路灯', story: '它们在雨夜交换了各自的路灯。' }
   }
   if (system.includes('只能记住上一句的续写器')) {
-    assertExactKeys(input, ['previous'], '空卡续写')
+    assertExactKeys(input, ['data'], '空卡续写')
     emptySentenceIndex += 1
     return { sentence: `第${emptySentenceIndex}句移到新场景` }
   }
@@ -224,10 +224,11 @@ function identify(call) {
   const system = call.system
   if (system.includes('错听器')) return 'magic-mishear'
   if (system.includes('拆字器')) return 'unruled-decompose'
-  if (system.includes('话题联想器')) return call.input && Object.keys(call.input).length === 0
-    ? 'sand-topic'
-    : Object.hasOwn(call.input, 'heardAs') ? 'magic-topic'
-      : Object.hasOwn(call.input, 'images') ? 'unruled-topic' : 'reverse-topic'
+  if (system.includes('话题联想器')) {
+    if (call.input && Object.keys(call.input).length === 0) return 'sand-topic'
+    if (typeof call.input?.data === 'string') return 'magic-topic'
+    return call.input?.data?.every?.((item) => /^反向词\d+$/u.test(item)) ? 'reverse-topic' : 'unruled-topic'
+  }
   if (system.includes('逐词取反器')) return 'reverse-words'
   if (system.includes('诗化的上句')) return 'poem-first'
   if (system.includes('负责写下句')) return 'poem-second'
@@ -292,31 +293,31 @@ try {
 
   const magic = cards.get('magic-tone')
   const magicCalls = llmCalls.filter(call => ['magic-mishear', 'magic-topic'].includes(identify(call))).slice(0, 2)
-  assertExactKeys(magicCalls[0].input, ['word'], '湮律第一阶段')
-  assert.equal(codePointLength(magicCalls[0].input.word) <= 20, true)
-  assertExactKeys(magicCalls[1].input, ['heardAs'], '湮律第二阶段')
-  assert.equal(magicCalls[1].input.heardAs, '错听岛')
-  assertNoSemanticLeak(magicCalls[1], magic, [magicCalls[0].input.word])
+  assertExactKeys(magicCalls[0].input, ['data'], '湮律第一阶段')
+  assert.equal(codePointLength(magicCalls[0].input.data) <= 20, true)
+  assertExactKeys(magicCalls[1].input, ['data'], '湮律第二阶段')
+  assert.equal(magicCalls[1].input.data, '错听岛')
+  assertNoSemanticLeak(magicCalls[1], magic, [magicCalls[0].input.data])
 
   const unruled = cards.get('unruled')
   const unruledCalls = llmCalls.filter(call => ['unruled-decompose', 'unruled-topic'].includes(identify(call))).slice(0, 2)
-  assertExactKeys(unruledCalls[0].input, ['word'], '不守第一阶段')
+  assertExactKeys(unruledCalls[0].input, ['data'], '不守第一阶段')
   assert.ok(Array.isArray(unruled.decomposedParts) && unruled.decomposedParts.length > 0)
   assert.ok(unruled.decomposedParts.every(part => typeof part === 'string' && part.length > 0))
-  assert.deepEqual(unruledCalls[1].input.images, ['会呼吸的门'])
-  assertNoSemanticLeak(unruledCalls[1], unruled, [unruledCalls[0].input.word])
+  assert.deepEqual(unruledCalls[1].input.data, ['会呼吸的门'])
+  assertNoSemanticLeak(unruledCalls[1], unruled, [unruledCalls[0].input.data])
 
   const reversed = cards.get('word-reverse')
   const reverseCalls = llmCalls.filter(call => ['reverse-words', 'reverse-topic'].includes(identify(call))).slice(0, 2)
-  assertExactKeys(reverseCalls[1].input, ['opposites'], '尔反第二阶段')
+  assertExactKeys(reverseCalls[1].input, ['data'], '尔反第二阶段')
   assertNoSemanticLeak(reverseCalls[1], reversed)
-  for (const source of reverseCalls[0].input.words) {
-    assert.equal(reverseCalls[1].input.opposites.includes(source), false)
+  for (const source of reverseCalls[0].input.data) {
+    assert.equal(reverseCalls[1].input.data.includes(source), false)
   }
 
   const poem = cards.get('blind-poem')
   const poemCalls = llmCalls.filter(call => ['poem-first', 'poem-second'].includes(identify(call))).slice(0, 2)
-  assert.deepEqual(poemCalls.find(call => identify(call) === 'poem-first').input, { head: poem.head })
+  assert.deepEqual(poemCalls.find(call => identify(call) === 'poem-first').input, { data: poem.head })
   const lowerCall = poemCalls.find(call => identify(call) === 'poem-second')
   assertExactKeys(lowerCall.input, [], '盲诗下片')
   assertNoSemanticLeak(lowerCall, poem, [poem.content.lines[0]])
@@ -371,7 +372,7 @@ try {
   const explanationCalls = callsSince(explanationStart)
   assert.equal(explanationCalls.length, 1)
   assert.equal(identify(explanationCalls[0]), 'human-story')
-  assert.deepEqual(explanationCalls[0].input, { head: magic.head, tail: magic.tail })
+  assert.deepEqual(explanationCalls[0].input, { data: [magic.head, magic.tail] })
   assert.equal(explanationCalls[0].user.includes('FORGED_'), false)
   assert.equal(explanationCalls[0].user.includes('reasoning'), false)
   assert.equal(explanationCalls[0].user.includes('provenance'), false)
@@ -410,7 +411,7 @@ try {
     const streamEvents = parseSse(await response.text())
     const call = llmCalls.at(-1)
     assert.equal(identify(call), 'empty-next')
-    assert.deepEqual(call.input, { previous: expectedPrevious })
+    assert.deepEqual(call.input, { data: expectedPrevious })
     assert.equal(call.user.includes('FORGED_'), false)
     const sentence = streamEvents.find(item => item.event === 'sentence')?.data.sentence
     const done = streamEvents.find(item => item.event === 'done')?.data

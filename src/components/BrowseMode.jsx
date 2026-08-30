@@ -46,6 +46,7 @@ function BrowseMode({
   mode = 'explore',
   openingType: openingCardType = CARD_TYPES.SAND_SEA,
   savedCardRequest = null,
+  offlineMode = false,
   onModeChange,
   onOpenSavedCard,
   onSearchInputChange,
@@ -1087,15 +1088,18 @@ function BrowseMode({
             aria-hidden={mode !== 'new'}
           >
               <div className="browse-engine-picker">
+                {!offlineMode && (
                 <button type="button" className="browse-engine-select" onClick={() => { setShowBrowseSuggestions(false); setShowBrowseEngineMenu((value) => !value) }} aria-expanded={showBrowseEngineMenu}>{CARD_DISPLAY_NAMES[cardType]} <i>⌄</i></button>
-                {showBrowseEngineMenu && <div className="browse-engine-menu">{CARD_TYPE_SEQUENCE.map((type) => <button type="button" key={type} className={cardType === type ? 'is-active' : ''} onClick={() => { setCardType(type); onSearchTypeChange?.(type); setShowBrowseEngineMenu(false) }}><strong>{CARD_DISPLAY_NAMES[type]}</strong><small>{CARD_ENGINE_NOTES[type]}</small></button>)}</div>}
+                )}
+                {!offlineMode && showBrowseEngineMenu && <div className="browse-engine-menu">{CARD_TYPE_SEQUENCE.map((type) => <button type="button" key={type} className={cardType === type ? 'is-active' : ''} onClick={() => { setCardType(type); onSearchTypeChange?.(type); setShowBrowseEngineMenu(false) }}><strong>{CARD_DISPLAY_NAMES[type]}</strong><small>{CARD_ENGINE_NOTES[type]}</small></button>)}</div>}
               </div>
               <div className="browse-input-wrap">
                 <input
                   type="text"
                   autoComplete="off"
-                  value={searchInput}
+                  value={offlineMode ? '人工智能' : searchInput}
                   onChange={(event) => {
+                    if (offlineMode) return
                     const nextValue = event.target.value
                     setSearchInput(nextValue)
                     onSearchInputChange?.(nextValue)
@@ -1103,6 +1107,7 @@ function BrowseMode({
                     setShowBrowseSuggestions(Boolean(nextValue.trim()))
                   }}
                   onFocus={() => { setShowBrowseSuggestions(Boolean(searchInput.trim())); setShowBrowseEngineMenu(false); setBrowseSearchHint('') }}
+                  readOnly={offlineMode}
                   aria-label="搜索新的起点"
                   placeholder="换一个起点"
                 />
@@ -1214,6 +1219,7 @@ function BrowseMode({
           onEmptyContinue={handleEmptyContinue}
           onNewBranch={handleNewBranch}
           canExtend={canExtend}
+          offlineMode={offlineMode}
         />
       )}
 

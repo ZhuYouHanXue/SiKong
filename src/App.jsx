@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import BrowseMode from './components/BrowseMode.jsx'
 import SavedCardsDrawer from './components/SavedCardsDrawer.jsx'
-import { CARD_TYPES } from './services/cards.js'
+import { CARD_TYPES, getModelConfig } from './services/cards.js'
 import { useCandidateHighlights } from './hooks/useCandidateHighlights.js'
 import candidates from './text/candidates.json'
 import notLike from './text/not-like.json'
@@ -90,6 +90,24 @@ function App() {
   const seedLength = Array.from(seed).length
   const isSeedOverLimit = seedLength > MAX_HEAD_LENGTH
   const candidateHighlights = useCandidateHighlights(candidateTopics, seedLength)
+
+  // 无 API Key（模型不可用）时，搜索框锁定为「人工智能」，只能对这一词生枝。
+  const [modelAvailable, setModelAvailable] = useState(true)
+  useEffect(() => {
+    let cancelled = false
+    getModelConfig()
+      .then((config) => { if (!cancelled) setModelAvailable(Boolean(config.available)) })
+      .catch(() => { if (!cancelled) setModelAvailable(true) })
+    return () => { cancelled = true }
+  }, [])
+  const isOfflineMode = modelAvailable === false
+  useEffect(() => {
+    if (isOfflineMode && !activeSeed) {
+      setSeed('人工智能')
+      setStatus('idle')
+      setShowSuggestions(false)
+    }
+  }, [isOfflineMode, activeSeed])
 
   useEffect(() => {
     if (activeSeed) return
@@ -209,18 +227,19 @@ function App() {
 
     if (transition) return
 
-    const cleanSeed = seed.trim()
-    if (!cleanSeed) {
+    const submitSeed = isOfflineMode ? '人工智能' : seed.trim()
+    if (!submitSeed) {
       setStatus('empty')
       inputRef.current?.focus()
       return
     }
-    if (isSeedOverLimit) {
+    if (Array.from(submitSeed).length > MAX_HEAD_LENGTH) {
       setStatus('too-long')
       inputRef.current?.focus()
       return
     }
 
+    if (isOfflineMode) setSeed('人工智能')
     setStatus('loading')
     setSavedCardRequest(null)
     setShowSuggestions(false)
@@ -266,6 +285,7 @@ function App() {
           mode={mode}
           openingType={openingType}
           savedCardRequest={savedCardRequest}
+          offlineMode={isOfflineMode}
           onModeChange={setMode}
           onOpenSavedCard={handleOpenSavedCard}
           onSearchInputChange={setSeed}
@@ -333,10 +353,12 @@ function App() {
               写下一个起点
             </label>
             <div className="seed-box">
+              {!isOfflineMode && (
               <div className="seed-engine-picker">
                 <button type="button" className="seed-engine-select" onClick={() => { setShowSuggestions(false); setShowEngineMenu((value) => !value) }} aria-expanded={showEngineMenu}>{engineNames[openingType]} <i>⌄</i></button>
                 {showEngineMenu && <div className="seed-engine-menu">{Object.entries(engineNames).map(([type, name]) => <button type="button" key={type} className={openingType === type ? 'is-active' : ''} onClick={() => { setOpeningType(type); setShowEngineMenu(false) }}><strong>{name}</strong><small>{engineNotes[type]}</small></button>)}</div>}
               </div>
+              )}
               <div className="seed-input-wrap">
                 <input
                   ref={inputRef}
@@ -348,7 +370,8 @@ function App() {
                   onChange={handleChange}
                   onFocus={() => { setShowSuggestions(Boolean(seed.trim())); setShowEngineMenu(false) }}
                   disabled={Boolean(transition)}
-                  placeholder="一个词，一句话，或一段近来的念头"
+                  readOnly={isOfflineMode}
+                  placeholder={isOfflineMode ? '离线模式：仅可探索「人工智能」' : "一个词，一句话，或一段近来的念头"}
                   aria-describedby="seed-status"
                 />
                 <span className={`seed-input-count${isSeedOverLimit ? ' is-over' : ''}`} aria-hidden="true">
@@ -360,6 +383,7 @@ function App() {
               </button>
             </div>
 
+            {!isOfflineMode && (
             <div className="seed-recommendation-row">
               <button
                 className={`seed-recommendation seed-recommendation--${recommendationMode}`}
@@ -382,7 +406,8 @@ function App() {
                 ))}
               </div>
             </div>
-            {showSuggestions && seed.trim() && (
+            )}
+            {!isOfflineMode && showSuggestions && seed.trim() && (
               <div className="seed-suggestions" role="listbox" aria-label="候选话题">
                 {candidateTopics.map((topic) => {
                   const marked = candidateHighlights[topic] || []
@@ -404,6 +429,12 @@ function App() {
                     </button>
                   )
                 })}
+              </div>
+            )}
+
+            {isOfflineMode && (
+              <div className="seed-offline-note" role="status">
+                当前离线示例模式：未配置 API Key，仅可探索「人工智能」。配置 DeepSeek API Key 可解锁完整生成。
               </div>
             )}
 

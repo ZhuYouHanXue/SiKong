@@ -629,6 +629,49 @@ function BrowseMode({
     beginPresetCardFlow(savedCardRequest.card, { fromCard })
   }, [beginPresetCardFlow, savedCardRequest])
 
+  const handleJumpToNode = useCallback((nodeId) => {
+    const node = getNode(journeyRef.current, nodeId)
+    if (!node || !node.card) return
+    const target = node.card
+    const token = flowTokenRef.current + 1
+    flowTokenRef.current = token
+    cardRequestControllerRef.current?.abort()
+    explanationControllerRef.current?.abort()
+    window.clearTimeout(entryTimerRef.current)
+    window.cancelAnimationFrame(entryFrameRef.current)
+    entryTimerRef.current = null
+    entryFrameRef.current = null
+
+    const targetType = target.type || cardType
+    currentNodeIdRef.current = nodeId
+    setCard(target)
+    setCardType(targetType)
+    setLoadingType(targetType)
+    setIndex(Math.max(0, Number(target.ordinal || 1) - 1))
+    if (mode === 'stay') setStaySeed(truncateHead(target.head || target.input || seedRef.current))
+    setSaved(Boolean(savedCardsRef.current.has(target.id)))
+    setFeedback(null)
+    setShowingRelation(false)
+    setExplanationStatus(target.explanation ? 'done' : 'idle')
+    setExplanationError(null)
+    setError(null)
+    setExitMode(null)
+    setExitVector(null)
+    setStage('entering')
+    actionLockedRef.current = true
+    entryFrameRef.current = window.requestAnimationFrame(() => {
+      entryFrameRef.current = null
+      entryTimerRef.current = window.setTimeout(() => {
+        if (flowTokenRef.current !== token) return
+        actionLockedRef.current = false
+        setStage('active')
+        entryTimerRef.current = null
+      }, CARD_ENTRY_DURATION)
+    })
+    setPureTree(false)
+    setJourneyVersion((value) => value + 1)
+  }, [cardType, mode, truncateHead])
+
   const selectCardType = useCallback((nextType) => {
     if (
       mode !== 'stay' ||
@@ -637,8 +680,17 @@ function BrowseMode({
       actionLockedRef.current ||
       FLOW_BUSY_STAGES.has(stage)
     ) return
-    if (nextType === cardType && card) return
-    if (restoreCardSnapshot(nextType)) return
+    const current = getNode(journeyRef.current, currentNodeIdRef.current)
+    if (!current) return
+    if (nextType === current.card?.type) return
+    const mother = current.parentId ? getNode(journeyRef.current, current.parentId) : null
+    const sibling = mother
+      ? mother.childrenIds.map((id) => getNode(journeyRef.current, id)).find((n) => n?.card?.type === nextType)
+      : null
+    if (sibling) {
+      handleJumpToNode(sibling.id)
+      return
+    }
     setAwaitingInitialType(false)
     cardTypeRequestRef.current = true
     journeyIntentRef.current = 'engineSibling'
@@ -650,7 +702,7 @@ function BrowseMode({
     }).finally(() => {
       cardTypeRequestRef.current = false
     })
-  }, [beginCardFlow, card, cardType, mode, restoreCardSnapshot, stage, staySeed])
+  }, [beginCardFlow, handleJumpToNode, mode, stage, staySeed])
 
   const finishSearchTransition = useCallback(() => {
     if (!searchTransitionRef.current) return
@@ -943,49 +995,6 @@ function BrowseMode({
     onModeChange?.(nextMode)
   }
 
-  const handleJumpToNode = useCallback((nodeId) => {
-    const node = getNode(journeyRef.current, nodeId)
-    if (!node || !node.card) return
-    const target = node.card
-    const token = flowTokenRef.current + 1
-    flowTokenRef.current = token
-    cardRequestControllerRef.current?.abort()
-    explanationControllerRef.current?.abort()
-    window.clearTimeout(entryTimerRef.current)
-    window.cancelAnimationFrame(entryFrameRef.current)
-    entryTimerRef.current = null
-    entryFrameRef.current = null
-
-    const targetType = target.type || cardType
-    currentNodeIdRef.current = nodeId
-    setCard(target)
-    setCardType(targetType)
-    setLoadingType(targetType)
-    setIndex(Math.max(0, Number(target.ordinal || 1) - 1))
-    if (mode === 'stay') setStaySeed(truncateHead(target.head || target.input || seedRef.current))
-    setSaved(Boolean(savedCardsRef.current.has(target.id)))
-    setFeedback(null)
-    setShowingRelation(false)
-    setExplanationStatus(target.explanation ? 'done' : 'idle')
-    setExplanationError(null)
-    setError(null)
-    setExitMode(null)
-    setExitVector(null)
-    setStage('entering')
-    actionLockedRef.current = true
-    entryFrameRef.current = window.requestAnimationFrame(() => {
-      entryFrameRef.current = null
-      entryTimerRef.current = window.setTimeout(() => {
-        if (flowTokenRef.current !== token) return
-        actionLockedRef.current = false
-        setStage('active')
-        entryTimerRef.current = null
-      }, CARD_ENTRY_DURATION)
-    })
-    setPureTree(false)
-    setJourneyVersion((value) => value + 1)
-  }, [cardType, mode, truncateHead])
-
   const handleNewBranch = useCallback((value) => {
     if (card?.type === CARD_TYPES.EMPTY) discardEmptyTask(card.id)
     const nextValue = truncateHead(value)
@@ -996,6 +1005,12 @@ function BrowseMode({
 
   const currentNode = getNode(journeyRef.current, currentNodeIdRef.current)
   const canExtend = !currentNode || currentNode.childrenIds.length === 0
+  const journeyMother = currentNode?.parentId ? getNode(journeyRef.current, currentNode.parentId) : null
+  const visitedEngines = new Set(
+    journeyMother
+      ? journeyMother.childrenIds.map((id) => getNode(journeyRef.current, id)?.card?.type).filter(Boolean)
+      : [],
+  )
 
   return (
     <>
@@ -1129,7 +1144,7 @@ function BrowseMode({
                   key={type}
                   className={[
                     cardType === type ? 'is-active' : '',
-                    cardSnapshotsRef.current.has(type) ? 'is-visited' : '',
+                    visitedEngines.has(type) ? 'is-visited' : '',
                   ].filter(Boolean).join(' ')}
                   aria-pressed={cardType === type}
                   disabled={

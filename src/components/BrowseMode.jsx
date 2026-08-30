@@ -331,6 +331,19 @@ function BrowseMode({
     else emptyTasksRef.current.set(card.id, { card, visible: false, inFlight: false, finished: card.content?.stream_status === 'done', awaitingReveal: false, forceContinue: false, failed: false, retryTimer: null })
   }, [card])
 
+  useEffect(() => {
+    if (!card || !journeyRef.current) return
+    const node = getNode(journeyRef.current, currentNodeIdRef.current)
+    if (!node || !node.card || node.card.id !== card.id) return
+    if (node.card.tail !== card.tail) {
+      node.card = card
+      node.tail = card.tail || node.tail
+      setJourneyVersion((value) => value + 1)
+    } else {
+      node.card = card
+    }
+  }, [card])
+
   const restoreCardSnapshot = useCallback((type) => {
     const snapshot = cardSnapshotsRef.current.get(type)
     if (!snapshot) return false

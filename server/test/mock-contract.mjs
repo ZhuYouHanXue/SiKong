@@ -114,7 +114,7 @@ function llmContent(system, user) {
     assertExactKeys(input, ['firstLine', 'secondLine'], '盲诗相遇解释')
     return { explanation: '两行诗在同一个空白处各自醒了过来。' }
   }
-  if (system.includes('答案之书解释器')) {
+  if (system.includes('两个短语')) {
     assertExactKeys(input, ['head', 'answer'], '全书相遇解释')
     return { explanation: '这页书正好从你原本的问题旁边经过。' }
   }
@@ -232,7 +232,7 @@ function identify(call) {
   if (system.includes('诗化的上句')) return 'poem-first'
   if (system.includes('负责写下句')) return 'poem-second'
   if (system.includes('双盲诗解释器')) return 'poem-meeting'
-  if (system.includes('答案之书解释器')) return 'book-meeting'
+  if (system.includes('两个短语')) return 'book-meeting'
   if (system.includes('意外联想器')) return 'human-story'
   if (system.includes('只能记住上一句')) return 'empty-next'
   if (system.includes('神秘的提示者')) return 'book-draw'

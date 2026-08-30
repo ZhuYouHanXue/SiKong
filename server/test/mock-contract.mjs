@@ -123,7 +123,7 @@ function llmContent(system, user) {
     return { title: '雨夜交换路灯', story: '它们在雨夜交换了各自的路灯。' }
   }
   if (system.includes('只能记住上一句的续写器')) {
-    assertExactKeys(input, ['seed', 'previous'], '空卡续写')
+    assertExactKeys(input, ['previous'], '空卡续写')
     emptySentenceIndex += 1
     return { sentence: `第${emptySentenceIndex}句移到新场景` }
   }
@@ -410,7 +410,7 @@ try {
     const streamEvents = parseSse(await response.text())
     const call = llmCalls.at(-1)
     assert.equal(identify(call), 'empty-next')
-    assert.deepEqual(call.input, { seed: empty.head, previous: expectedPrevious })
+    assert.deepEqual(call.input, { previous: expectedPrevious })
     assert.equal(call.user.includes('FORGED_'), false)
     const sentence = streamEvents.find(item => item.event === 'sentence')?.data.sentence
     const done = streamEvents.find(item => item.event === 'done')?.data

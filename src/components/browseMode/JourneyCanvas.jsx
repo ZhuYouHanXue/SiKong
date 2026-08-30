@@ -133,6 +133,7 @@ export default function JourneyCanvas({
     let nearest = null
     let best = Infinity
     for (const node of layout.nodes) {
+      if (node.id === journeyRef.current?.rootId) continue // 空妈妈不可作为悬停目标，避免放大/点击
       const d = Math.hypot(node.x - x, node.y - y)
       if (d < threshold && d < best) {
         best = d

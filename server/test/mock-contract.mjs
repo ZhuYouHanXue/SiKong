@@ -106,7 +106,7 @@ function llmContent(system, user) {
     assertExactKeys(input, [], '盲诗下片')
     return { line: '月光折起空站台' }
   }
-  if (system.includes('你是答案之书。')) {
+  if (system.includes('神秘的提示者')) {
     assertExactKeys(input, [], '全书')
     return { line: '今天绕开熟路' }
   }
@@ -235,7 +235,7 @@ function identify(call) {
   if (system.includes('答案之书解释器')) return 'book-meeting'
   if (system.includes('意外联想器')) return 'human-story'
   if (system.includes('只能记住上一句')) return 'empty-next'
-  if (system.includes('答案之书。')) return 'book-draw'
+  if (system.includes('神秘的提示者')) return 'book-draw'
   return 'unknown'
 }
 

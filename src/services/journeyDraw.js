@@ -106,6 +106,12 @@ export function computeJourneyLayout(journey, w, h) {
   const minAngle = 0.03
   const maxAngle = (88 * Math.PI) / 180
 
+  function foldAngle(angle) {
+    if (angle > maxAngle) return maxAngle - (angle - maxAngle)
+    if (angle < minAngle) return minAngle + (minAngle - angle)
+    return angle
+  }
+
   function slotWeight(offset, focus, sharp) {
     const d = Math.abs(offset - focus)
     return 1 / (1 + sharp * d * d)
@@ -143,12 +149,12 @@ export function computeJourneyLayout(journey, w, h) {
           offset = side * magnitude
         }
         kidAngle = baseAngle + offset
-        kidAngle = Math.max(minAngle, Math.min(maxAngle, kidAngle))
+        kidAngle = foldAngle(kidAngle)
       } else {
-        const offset = pickSlot(available, kid.id, 0, 0.5)
+        const offset = pickSlot(available, kid.id, 0, 0.25)
         available = available.filter((o) => Math.abs(o - offset) > 0.001)
         kidAngle = baseAngle + offset + (rand(kid.id, 'jit') - 0.5) * 0.04
-        kidAngle = Math.max(minAngle, Math.min(maxAngle, kidAngle))
+        kidAngle = foldAngle(kidAngle)
       }
       const d = (depth.get(id) ?? 0) + 1
       depth.set(kid.id, d)

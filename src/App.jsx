@@ -125,6 +125,7 @@ function App() {
     return null
   })()
   const tutorialActive = activeTutorial !== null
+  const showEnginePicker = !isOfflineMode && !tutorialActive
   useEffect(() => {
     if (tutorialActive && openingType !== CARD_TYPES.SAND_SEA) setOpeningType(CARD_TYPES.SAND_SEA)
   }, [tutorialActive, openingType])
@@ -394,8 +395,8 @@ function App() {
             <label className="sr-only" htmlFor="seed-input">
               写下一个起点
             </label>
-            <div className="seed-box">
-              {!isOfflineMode && !tutorialActive && (
+            <div className={`seed-box${showEnginePicker ? '' : ' seed-box--no-engine'}`}>
+              {showEnginePicker && (
               <div className="seed-engine-picker">
                 <button type="button" className="seed-engine-select" onClick={() => { setShowSuggestions(false); setShowEngineMenu((value) => !value) }} aria-expanded={showEngineMenu}>{engineNames[openingType]} <i>⌄</i></button>
                 {showEngineMenu && <div className="seed-engine-menu">{Object.entries(engineNames).map(([type, name]) => <button type="button" key={type} className={openingType === type ? 'is-active' : ''} onClick={() => { setOpeningType(type); setShowEngineMenu(false) }}><strong>{name}</strong><small>{engineNotes[type]}</small></button>)}</div>}

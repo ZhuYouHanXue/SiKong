@@ -1091,3 +1091,8 @@
     transform: none;
   }
 }
+
+/* 引擎选择器隐藏（教程中 / 离线）时，改用 1fr auto 两列：输入框弹性、按钮自适应，防止按钮被拉长。 */
+.seed-box.seed-box--no-engine {
+  grid-template-columns: 1fr auto;
+}

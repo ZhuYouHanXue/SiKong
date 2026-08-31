@@ -6,6 +6,7 @@ import { useCandidateHighlights } from './hooks/useCandidateHighlights.js'
 import candidates from './text/candidates.json'
 import notLike from './text/not-like.json'
 import othersLike from './text/others-like.json'
+import { tutorialDone, markTutorialDone } from './services/tutorial.js'
 
 function sample(items, count) {
   const list = Array.isArray(items) ? [...items] : []
@@ -68,6 +69,7 @@ function App() {
   const [openingType, setOpeningType] = useState(CARD_TYPES.SAND_SEA)
   const [savedCardRequest, setSavedCardRequest] = useState(null)
   const [showEngineMenu, setShowEngineMenu] = useState(false)
+  const [showSproutHelp, setShowSproutHelp] = useState(() => !tutorialDone('sprout'))
   const engineNames = {
     [CARD_TYPES.SAND_SEA]: '沙海', [CARD_TYPES.MAGIC_TONE]: '湮律', [CARD_TYPES.UNRULED]: '不守',
     [CARD_TYPES.WORD_REVERSE]: '尔反', [CARD_TYPES.BLIND_POEM]: '盲诗', [CARD_TYPES.BOOK_OF_ANSWERS]: '全书', [CARD_TYPES.EMPTY]: '空',
@@ -226,6 +228,8 @@ function App() {
     setShowSuggestions(false)
     setMode('explore')
     setTransition('departing')
+    markTutorialDone('sprout')
+    setShowSproutHelp(false)
   }
 
   const handleChange = (event) => {
@@ -359,6 +363,16 @@ function App() {
                 <span>由此生枝</span>
               </button>
             </div>
+
+            {showSproutHelp && (
+              <aside className="sikong-tutorial" role="note" aria-label="新手引导">
+                <p>
+                  欢迎来到司空，这是一个意外探索与灵感漫游应用。<br />
+                  随便输入点什么，或直接选择一条“猜你不喜欢”，<br />
+                  之后，由此生枝，邂逅意外
+                </p>
+              </aside>
+            )}
 
             <div className="seed-recommendation-row">
               <button

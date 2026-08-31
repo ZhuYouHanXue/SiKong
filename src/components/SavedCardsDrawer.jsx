@@ -1,6 +1,7 @@
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { getSavedCards, deleteAllSavedCards, getModelConfig, saveModelConfig } from '../services/cards.js'
+import { resetTutorials } from '../services/tutorial.js'
 
 const cleanText = (value, fallback = '') => String(value ?? fallback).replace(/\s+/g, ' ').trim()
 
@@ -10,7 +11,6 @@ const truncate = (value, maxLength) => {
 }
 
 const SURFACE_TYPES = new Set(['sand-sea', 'magic-tone', 'unruled', 'word-reverse'])
-const FIRST_USE_KEY = 'sikong-first-use'
 
 function cardSummary(card) {
   const surface = card?.surface && typeof card.surface === 'object' ? card.surface : {}
@@ -150,11 +150,7 @@ const SavedCardsDrawer = forwardRef(function SavedCardsDrawer({
   }, [])
 
   const handleResetTutorial = useCallback(() => {
-    try {
-      window.localStorage.setItem(FIRST_USE_KEY, '1')
-    } catch {
-      // 忽略本地存储不可用的情况；按钮本身仍可点击。
-    }
+    resetTutorials()
     window.location.reload()
   }, [])
 

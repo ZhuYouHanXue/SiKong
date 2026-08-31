@@ -22,7 +22,13 @@ public/     静态资源
 
 ## 快速开始
 
+### 方式零：访问云服务器（快速）
+
+打开<http://47.82.96.117:8787>访问在线演示
+
 ### 方式一：一键启动（推荐）
+
+克隆仓库后
 
 - Windows：双击 `start.bat`
 - macOS / Linux：运行 `./start.sh`
@@ -66,9 +72,7 @@ pnpm dev
 ```
 
 密钥与本地数据文件已被 git 忽略，不会提交到仓库：`server/model-config.json`、`server/.env`、`server/.env.local`、`server/saved-cards.json`。
-### 方式三：访问云服务器
 
-打开<http://47.82.96.117:8787>即可与其他用户一起探索意外
 
 ## 运行与部署
 

@@ -173,8 +173,10 @@ function RelationPanel({ card, explanation, status, error, closing = false }) {
         const pairs = Array.isArray(c.oppositePairs) ? c.oppositePairs : []
         const pairStr = pairs.length > 0 ? pairs.map(p => p.source + '→' + p.opposite).join('、') : ''
         return [
-          { title: '取反', text: pairStr || '逐词取反' },
-          { title: '成句', text: '于是祂向你抛出了“' + (c.tail || '') + '”' },
+          { title: '如是', text: '“' + c.head + '” 你这样写' },
+          { title: '逆词', text: '祂逐一写下它们的反义词 ' },
+          { title: '良久', text: '祂看着这些词 ' },          
+          { title: '生题', text: '“' + (c.tail || '') + '” 这会是一个有意思的话题吗？' },
         ]
       }
       case CARD_TYPES.BLIND_POEM: {

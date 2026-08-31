@@ -1248,6 +1248,7 @@ function BrowseMode({
       variant="embedded"
       onOpenCard={onOpenSavedCard}
       onReturnHome={handleReturn}
+      offlineMode={offlineMode}
     />
     </>
   )

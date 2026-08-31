@@ -1570,3 +1570,61 @@
 }
 
 /* ===== 卡片“何以相遇”新手引导：复用首页 .sikong-tutorial 盒子/拦截层/晃动/箭头 ===== */
+
+/* ===== 第三步：居中的引导弹卡（暗色遮罩 + 屏蔽 + 右下箭头确认） ===== */
+.sikong-tutorial-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 90000;
+  pointer-events: auto;
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.sikong-tutorial-modal-pos {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 90001;
+  width: min(560px, 90vw);
+}
+
+.sikong-tutorial-modal {
+  position: relative;
+  max-height: 82vh;
+  overflow-y: auto;
+  padding: 26px 28px 42px;
+  border: var(--hairline);
+  background: var(--paper);
+  color: var(--ink);
+  box-shadow: 8px 8px 16px rgba(0, 0, 0, 0.16);
+  text-align: left;
+}
+
+.sikong-tutorial-modal__lead {
+  margin: 0 0 16px;
+  font-size: 19px;
+  letter-spacing: 0.12em;
+}
+
+.sikong-tutorial-modal p {
+  margin: 0 0 10px;
+  font-size: 14px;
+  letter-spacing: 0.05em;
+  line-height: 1.8;
+}
+
+.sikong-tutorial-modal__group {
+  margin: 0 0 12px;
+  padding-left: 20px;
+}
+
+.sikong-tutorial-modal__group li {
+  font-size: 14px;
+  letter-spacing: 0.05em;
+  line-height: 1.8;
+}
+
+.sikong-tutorial-modal--shake {
+  animation: sikong-tutorial-shake 400ms ease;
+}

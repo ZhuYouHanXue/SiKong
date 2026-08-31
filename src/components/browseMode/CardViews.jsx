@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { CARD_TYPES } from '../../services/cards.js'
 import {
   CARD_DISPLAY_NAMES,
@@ -423,6 +424,38 @@ function SurfaceTutorialTip({ containerRef, targetSelector, lines, shaking, onCo
   )
 }
 
+function SurfaceTutorialModal({ shaking, onConfirm, onShakeEnd, onShakeRequest }) {
+  return createPortal(
+    <>
+      <div className="sikong-tutorial-modal-backdrop" onClick={onShakeRequest} aria-hidden="true" />
+      <div className="sikong-tutorial-modal-pos">
+        <div
+          className={`sikong-tutorial-modal${shaking ? ' sikong-tutorial-modal--shake' : ''}`}
+          role="alertdialog"
+          aria-label="新手引导"
+          onAnimationEnd={onShakeEnd}
+        >
+          <p className="sikong-tutorial-modal__lead">现在，开始探索意外与答案吧！</p>
+          <p>右上角可以切换卡片生成模式：</p>
+          <ul className="sikong-tutorial-modal__group">
+            <li><strong>探索</strong>：始终将上一次的意外作为下一次的输入</li>
+            <li><strong>驻足</strong>：固定同一输入，观察不同引擎给出的意外</li>
+          </ul>
+          <p>另外，你的旅途将会化作“水墨樱花”展示于背景</p>
+          <ul className="sikong-tutorial-modal__group">
+            <li>右下角的按钮可调整其可见性或进行旅途回溯</li>
+            <li>点击左上角的 ⌜司空⌟ 可拉出侧边栏 其中有返回首页的按钮</li>
+          </ul>
+          <button type="button" className="sikong-tutorial__close" onClick={onConfirm} aria-label="继续">
+            →
+          </button>
+        </div>
+      </div>
+    </>,
+    document.body,
+  )
+}
+
 function CardCopy({ card, active, onEmptyVisibility, onEmptyRevealComplete, onEmptyContinue }) {
   if (SURFACE_CARD_TYPES.has(card.type)) return <SurfaceCardCopy card={card} />
 
@@ -492,6 +525,7 @@ export function CardScene({
   }
   const confirmSurfaceTutorial = () => {
     if (surfaceStep === 1) setSurfaceStep(2)
+    else if (surfaceStep === 2) setSurfaceStep(3)
     else {
       markTutorialDone('surface')
       setSurfaceStep(0)
@@ -702,7 +736,14 @@ export function CardScene({
         {saved && <span className="save-stamp">留</span>}
         {exitMode === 'avoid' && <span className="avoid-strike" />}
       </article>
-      {surfaceStep > 0 && (
+      {surfaceStep === 3 ? (
+        <SurfaceTutorialModal
+          shaking={tutorialShaking}
+          onConfirm={confirmSurfaceTutorial}
+          onShakeEnd={handleSurfaceShakeEnd}
+          onShakeRequest={triggerSurfaceShake}
+        />
+      ) : surfaceStep > 0 ? (
         <>
           <div className="sikong-tutorial-blocker" onClick={triggerSurfaceShake} aria-hidden="true" />
           {surfaceStep === 1 && (
@@ -726,7 +767,7 @@ export function CardScene({
             />
           )}
         </>
-      )}
+      ) : null}
     </div>
   )
 }

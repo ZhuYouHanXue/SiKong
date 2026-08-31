@@ -111,15 +111,16 @@ try {
 
   const noModel = await request('/cards', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ head: '没有模型时直接报错', type: 'sand-sea', entropy: 'smoke-no-model' }),
+    body: JSON.stringify({ head: '没有模型时走离线卡片', type: 'sand-sea', entropy: 'smoke-no-model' }),
   })
-  assert.equal(noModel.response.status, 500)
-  assert.ok(noModel.payload.error)
+  assert.equal(noModel.response.status, 200)
+  assert.equal(noModel.payload.type, 'sand-sea')
+  assert.ok(noModel.payload.surface?.tailReading)
 
   const missing = await request('/not-real')
   assert.equal(missing.response.status, 404)
 
-  console.log('司空服务端冒烟测试通过：无模型时卡片请求直接报错，不再降级为预设卡片。')
+  console.log('司空服务端冒烟测试通过：无模型时返回固定离线卡片，不再报错。')
 } catch (error) {
   if (logs.trim()) console.error(logs.trim())
   throw error

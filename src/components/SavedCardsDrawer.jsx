@@ -61,7 +61,6 @@ const SavedCardsDrawer = forwardRef(function SavedCardsDrawer({
   const [status, setStatus] = useState('idle')
   const [error, setError] = useState(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
-  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
   const [modelProvider, setModelProvider] = useState('deepseek')
   const [modelName, setModelName] = useState('')
   const [modelBaseUrl, setModelBaseUrl] = useState('')
@@ -145,7 +144,6 @@ const SavedCardsDrawer = forwardRef(function SavedCardsDrawer({
   }, [modelApiKey, modelBaseUrl, modelName, modelProvider])
 
   const performDeleteAll = useCallback(async () => {
-    setDeleteConfirmOpen(false)
     setSettingsStatus('deleting')
     try {
       await deleteAllSavedCards()
@@ -158,17 +156,10 @@ const SavedCardsDrawer = forwardRef(function SavedCardsDrawer({
   }, [])
 
   const handleDeleteAll = useCallback(async () => {
-    // 在线且部署在服务器（留印全局共享）用自定义确认弹窗，警示会删掉所有人的留印。
-    if (!offlineMode && IS_SHARED_DEPLOYMENT) {
-      setSettingsOpen(false)
-      setDeleteConfirmOpen(true)
-      return
-    }
-    // 离线模式（本地留印）或本机开发：维持原生确认。
     const confirmed = window.confirm('确定删除所有留印？此操作不可恢复。')
     if (!confirmed) return
     await performDeleteAll()
-  }, [offlineMode, performDeleteAll])
+  }, [performDeleteAll])
 
   const handleResetTutorial = useCallback(() => {
     resetTutorials()
@@ -294,6 +285,11 @@ const SavedCardsDrawer = forwardRef(function SavedCardsDrawer({
               <button type="button" onClick={closeSettings}>×</button>
             </header>
             <div className="saved-cards-settings-dialog__body">
+              {IS_SHARED_DEPLOYMENT && (
+                <p className="saved-cards-settings-dialog__preview-note">
+                  正在使用在线预览模式。
+                </p>
+              )}
               {!IS_SHARED_DEPLOYMENT && (
                 <section className="saved-cards-settings-section">
                   <h2 className="saved-cards-settings-section__title">LLM 配置</h2>
@@ -359,12 +355,14 @@ const SavedCardsDrawer = forwardRef(function SavedCardsDrawer({
                 </section>
               )}
 
-              <section className="saved-cards-settings-section">
-                <h2 className="saved-cards-settings-section__title">留印管理</h2>
-                <button type="button" className="saved-cards-settings-dialog__danger" onClick={handleDeleteAll} disabled={settingsStatus === 'deleting' || settingsStatus === 'saving'}>
-                  {settingsStatus === 'deleting' ? '正在删除…' : '删除所有留印'}
-                </button>
-              </section>
+              {!IS_SHARED_DEPLOYMENT && (
+                <section className="saved-cards-settings-section">
+                  <h2 className="saved-cards-settings-section__title">留印管理</h2>
+                  <button type="button" className="saved-cards-settings-dialog__danger" onClick={handleDeleteAll} disabled={settingsStatus === 'deleting' || settingsStatus === 'saving'}>
+                    {settingsStatus === 'deleting' ? '正在删除…' : '删除所有留印'}
+                  </button>
+                </section>
+              )}
 
               <section className="saved-cards-settings-section">
                 <h2 className="saved-cards-settings-section__title">教程</h2>
@@ -372,36 +370,6 @@ const SavedCardsDrawer = forwardRef(function SavedCardsDrawer({
                   重置教程
                 </button>
               </section>
-            </div>
-          </section>
-        </div>
-      )}
-      {deleteConfirmOpen && (
-        <div className="saved-cards-settings-layer">
-          <button className="saved-cards-settings-backdrop" type="button" aria-label="放弃删除" onClick={() => setDeleteConfirmOpen(false)} />
-          <section className="saved-cards-settings-dialog" role="dialog" aria-modal="true" aria-label="确认删除所有留印">
-            <div className="saved-cards-settings-dialog__frame" aria-hidden="true">
-              <i />
-              <i />
-              <i />
-              <i />
-            </div>
-            <header className="saved-cards-settings-dialog__header">
-              <p>删除所有留印</p>
-              <button type="button" onClick={() => setDeleteConfirmOpen(false)} aria-label="关闭">×</button>
-            </header>
-            <div className="saved-cards-settings-dialog__body">
-              <p className="saved-cards-settings-dialog__confirm-text">
-                你真的要删除所有人的留印吗？
-              </p>
-              <div className="saved-cards-settings-dialog__confirm-actions">
-                <button type="button" className="saved-cards-settings-dialog__primary" onClick={() => setDeleteConfirmOpen(false)}>
-                  放弃
-                </button>
-                <button type="button" className="saved-cards-settings-dialog__danger" onClick={performDeleteAll} disabled={settingsStatus === 'deleting'}>
-                  {settingsStatus === 'deleting' ? '正在删除…' : '狠心删除'}
-                </button>
-              </div>
             </div>
           </section>
         </div>

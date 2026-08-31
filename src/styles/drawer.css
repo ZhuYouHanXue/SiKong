@@ -497,6 +497,14 @@
   padding: 22px 24px 26px;
 }
 
+.saved-cards-settings-dialog__preview-note {
+  margin: 0 0 2px;
+  color: var(--seal);
+  font-size: 13px;
+  letter-spacing: 0.12em;
+  line-height: 1.6;
+}
+
 .saved-cards-settings-section {
   display: grid;
   gap: 12px;

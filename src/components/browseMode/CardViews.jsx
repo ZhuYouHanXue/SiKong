@@ -8,6 +8,7 @@ import {
   toneBorderParts,
 } from './constants.js'
 import { createExitFragments, shuffle } from './utils.js'
+import { markTutorialDone, tutorialDone } from '../../services/tutorial.js'
 
 function UnruledEntrySvg() {
   const svgRef = useRef(null)
@@ -355,7 +356,37 @@ function EmptyCardCopy({ card, active, onVisibilityChange, onRevealComplete, onC
   )
 }
 
-function SurfaceCardCopy({ card }) {
+const SURFACE_TUTORIAL_TIPS = {
+  1: ['意外发生了！', '看第一段文字，', '这个结果看起来和你的输入没有任何关系'],
+  2: ['但我们还是在第二段里尽力解释这个意外', '试试从自己与意外的联系中寻找答案'],
+}
+
+function SurfaceTutorialTip({ lines, shaking, onConfirm, onShakeEnd }) {
+  return (
+    <div className="surface-tutorial-anchor">
+      <aside
+        className={`sikong-tutorial${shaking ? ' sikong-tutorial--shake' : ''}`}
+        role="alertdialog"
+        aria-label="新手引导"
+        onAnimationEnd={onShakeEnd}
+      >
+        <p>
+          {lines.map((line, index) => (
+            <span key={index}>
+              {line}
+              {index < lines.length - 1 && <br />}
+            </span>
+          ))}
+        </p>
+        <button type="button" className="sikong-tutorial__confirm" onClick={onConfirm}>
+          确认
+        </button>
+      </aside>
+    </div>
+  )
+}
+
+function SurfaceCardCopy({ card, tutorialStep = 0, tutorialShaking = false, onTutorialConfirm, onTutorialShakeEnd }) {
   const surface = card.surface || {}
   const tail = card.tail || card.input || '一条意外方向正在形成。'
   const reading = surface.tailReading || '它像一条临时出现的小路，先不必急着走通。'
@@ -365,19 +396,49 @@ function SurfaceCardCopy({ card }) {
 
   return (
     <div className="surface-card-copy">
-      <p className="surface-card-copy__tail">{tail}</p>
+      <div className="surface-tutorial-host">
+        <p className="surface-card-copy__tail">{tail}</p>
+        {tutorialStep === 1 && (
+          <SurfaceTutorialTip
+            lines={SURFACE_TUTORIAL_TIPS[1]}
+            shaking={tutorialShaking}
+            onConfirm={onTutorialConfirm}
+            onShakeEnd={onTutorialShakeEnd}
+          />
+        )}
+      </div>
       <p className="surface-card-copy__reading">{reading}</p>
       <div className="surface-card-copy__divider-spacer" aria-hidden="true" />
       <div className="surface-card-copy__meeting">
-        <p className="surface-card-copy__meeting-title">{title}</p>
+        <div className="surface-tutorial-host">
+          <p className="surface-card-copy__meeting-title">{title}</p>
+          {tutorialStep === 2 && (
+            <SurfaceTutorialTip
+              lines={SURFACE_TUTORIAL_TIPS[2]}
+              shaking={tutorialShaking}
+              onConfirm={onTutorialConfirm}
+              onShakeEnd={onTutorialShakeEnd}
+            />
+          )}
+        </div>
         <p>{interpret}</p>
       </div>
     </div>
   )
 }
 
-function CardCopy({ card, active, onEmptyVisibility, onEmptyRevealComplete, onEmptyContinue }) {
-  if (SURFACE_CARD_TYPES.has(card.type)) return <SurfaceCardCopy card={card} />
+function CardCopy({ card, active, onEmptyVisibility, onEmptyRevealComplete, onEmptyContinue, tutorialStep, tutorialShaking, onTutorialConfirm, onTutorialShakeEnd }) {
+  if (SURFACE_CARD_TYPES.has(card.type)) {
+    return (
+      <SurfaceCardCopy
+        card={card}
+        tutorialStep={tutorialStep}
+        tutorialShaking={tutorialShaking}
+        onTutorialConfirm={onTutorialConfirm}
+        onTutorialShakeEnd={onTutorialShakeEnd}
+      />
+    )
+  }
 
   if (card.type === CARD_TYPES.BLIND_POEM) {
     return (
@@ -432,6 +493,23 @@ export function CardScene({
   const gestureRef = useRef(null)
   const wasShowingRelationRef = useRef(showingRelation)
   const [relationLeaving, setRelationLeaving] = useState(false)
+  const [surfaceStep, setSurfaceStep] = useState(0)
+  const [tutorialShaking, setTutorialShaking] = useState(false)
+  const triggerSurfaceShake = (event) => {
+    event?.preventDefault()
+    event?.stopPropagation()
+    if (!tutorialShaking) setTutorialShaking(true)
+  }
+  const handleSurfaceShakeEnd = (event) => {
+    if (event?.animationName === 'sikong-tutorial-shake') setTutorialShaking(false)
+  }
+  const confirmSurfaceTutorial = () => {
+    if (surfaceStep === 1) setSurfaceStep(2)
+    else {
+      markTutorialDone('surface')
+      setSurfaceStep(0)
+    }
+  }
   const emptyStreamBusy = card.type === CARD_TYPES.EMPTY &&
     ['pending', 'streaming'].includes(card.content?.stream_status || card.content?.streamStatus)
   const hasSurfaceMeeting = SURFACE_CARD_TYPES.has(card.type)
@@ -450,6 +528,15 @@ export function CardScene({
     if (showingRelation) setRelationLeaving(false)
     return undefined
   }, [showingRelation])
+
+  useEffect(() => {
+    setTutorialShaking(false)
+    if (stage === 'active' && SURFACE_CARD_TYPES.has(card?.type) && !tutorialDone('surface')) {
+      setSurfaceStep((current) => current || 1)
+    } else {
+      setSurfaceStep(0)
+    }
+  }, [stage, card?.type])
   const exitFragments = useMemo(
     () => createExitFragments(exitMode, exitVector),
     [exitMode, exitVector],
@@ -577,6 +664,10 @@ export function CardScene({
             onEmptyVisibility={onEmptyVisibility}
             onEmptyRevealComplete={onEmptyRevealComplete}
             onEmptyContinue={onEmptyContinue}
+            tutorialStep={surfaceStep}
+            tutorialShaking={tutorialShaking}
+            onTutorialConfirm={confirmSurfaceTutorial}
+            onTutorialShakeEnd={handleSurfaceShakeEnd}
           />
           </div>
 
@@ -627,6 +718,9 @@ export function CardScene({
         {saved && <span className="save-stamp">留</span>}
         {exitMode === 'avoid' && <span className="avoid-strike" />}
       </article>
+      {surfaceStep > 0 && (
+        <div className="sikong-tutorial-blocker" onClick={triggerSurfaceShake} aria-hidden="true" />
+      )}
     </div>
   )
 }

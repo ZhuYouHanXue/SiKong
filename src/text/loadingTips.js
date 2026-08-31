@@ -47,6 +47,7 @@ const SHARED_TIPS = [
   '即使你连续刷了一千张卡片 API key 产生的费用可能不足0.1元',
   '上一次看到我是什么时候',
   '你无法知晓 卡片是在胡言乱语 还是在制造意外',
+  '其实主页的logo是可以点击的',
 ]
 
 export function getLoadingTips() {

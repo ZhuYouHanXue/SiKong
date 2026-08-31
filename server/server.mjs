@@ -686,7 +686,7 @@ const server = createServer(async (request, response) => {
   } catch (error) {
     if (isAbort(error) || request.aborted || response.destroyed) return
     console.error('[sikong-card]', error)
-    return sendJSON(response, 500, { error: publicError(error) })
+    return sendJSON(response, 500, { error: publicError(error), code: error?.code || 'UNKNOWN' })
   }
 })
 

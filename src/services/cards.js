@@ -87,11 +87,15 @@ async function requestJson(path, options = {}) {
 
   if (!response.ok) {
     let message = `司空接口请求失败：${response.status}`
+    let code = null
     try {
       const payload = await response.json()
       if (payload?.error) message = payload.error
+      if (payload?.code) code = payload.code
     } catch {}
-    throw new Error(message)
+    const error = new Error(message)
+    error.code = code
+    throw error
   }
 
   return response.json()

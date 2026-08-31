@@ -1227,6 +1227,12 @@ function BrowseMode({
         <div className="browse-error" role="alert">
           <span>断</span>
           <p>{error?.message ?? '这条歧路暂时没有出现。'}</p>
+          {error?.code === 'INVALID_MODEL_SCHEMA' && (
+            <p className="browse-error__hint">
+              若多次重试仍出现此界面，则模型可能无法处理你的输入<br />
+              尝试更换输入
+            </p>
+          )}
           <button
             type="button"
             onClick={() =>

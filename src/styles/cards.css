@@ -1072,6 +1072,12 @@
   letter-spacing: 0.16em;
 }
 
+.browse-error__hint {
+  color: color-mix(in srgb, var(--ink) 62%, transparent);
+  font-size: 11px;
+  line-height: 1.9;
+}
+
 .browse-error button {
   padding: 10px 22px;
   border: var(--hairline);

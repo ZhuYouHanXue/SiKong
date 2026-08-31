@@ -216,6 +216,16 @@
   letter-spacing: 0.22em;
 }
 
+.saved-cards-drawer__share-note {
+  margin: 0 0 16px;
+  padding: 8px 10px;
+  border: 1px dashed var(--seal);
+  color: var(--ink);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  line-height: 1.7;
+}
+
 .saved-cards-drawer__footer {
   padding: 16px 26px 20px;
 }

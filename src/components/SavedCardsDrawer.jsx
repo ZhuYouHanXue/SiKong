@@ -47,6 +47,7 @@ const SavedCardsDrawer = forwardRef(function SavedCardsDrawer({
   variant = 'icon',
   onOpenCard,
   onReturnHome,
+  offlineMode = false,
 }, ref) {
   const [open, setOpen] = useState(false)
   const [cards, setCards] = useState([])
@@ -215,6 +216,11 @@ const SavedCardsDrawer = forwardRef(function SavedCardsDrawer({
             留印
             <small>SAVED CARDS</small>
           </div>
+          {!offlineMode && (
+            <p className="saved-cards-drawer__share-note">
+              当前正在使用在线模式，所有用户留印共享，和他们一起邂逅意外吧。
+            </p>
+          )}
 
           {status === 'loading' && <p className="saved-cards-state">正在读取留印……</p>}
           {status === 'error' && <p className="saved-cards-state">{error}</p>}

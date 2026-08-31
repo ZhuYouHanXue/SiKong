@@ -339,7 +339,7 @@ function App() {
             }, 850)
           }}
         />
-        <SavedCardsDrawer variant="icon" onOpenCard={handleOpenSavedCard} />
+        <SavedCardsDrawer variant="icon" onOpenCard={handleOpenSavedCard} offlineMode={isOfflineMode} />
       </>
     )
   }
@@ -545,7 +545,7 @@ function App() {
         </div>
       )}
 
-      <SavedCardsDrawer ref={savedCardsDrawerRef} variant="embedded" onOpenCard={handleOpenSavedCard} />
+      <SavedCardsDrawer ref={savedCardsDrawerRef} variant="embedded" onOpenCard={handleOpenSavedCard} offlineMode={isOfflineMode} />
     </div>
   )
 }

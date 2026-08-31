@@ -1569,18 +1569,4 @@
   }
 }
 
-/* ===== 卡片“何以相遇”新手引导：复用首页 .sikong-tutorial 盒子/拦截层/晃动/确认 ===== */
-.sikong-tutorial__confirm {
-  position: absolute;
-  right: 10px;
-  bottom: 8px;
-  pointer-events: auto;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: var(--seal);
-  cursor: pointer;
-  font: inherit;
-  font-size: 14px;
-  letter-spacing: 0.2em;
-}
+/* ===== 卡片“何以相遇”新手引导：复用首页 .sikong-tutorial 盒子/拦截层/晃动/箭头 ===== */

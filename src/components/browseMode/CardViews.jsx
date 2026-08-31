@@ -378,8 +378,8 @@ function SurfaceCardCopy({ card }) {
 }
 
 const SURFACE_TUTORIAL_TIPS = {
-  1: ['意外发生了！', '看第一段文字，', '这个结果看起来和你的输入没有任何关系'],
-  2: ['但我们还是在第二段里尽力解释这个意外', '试试从自己与意外的联系中寻找答案'],
+  1: ['这个结果看起来和你的输入毫不相干'],
+  2: ['但我们还是在这里挖掘了一些他们的联系', '你或许可以从这里找到答案或新看法'],
 }
 
 function SurfaceTutorialTip({ containerRef, targetSelector, lines, shaking, onConfirm, onShakeEnd }) {
@@ -411,9 +411,9 @@ function SurfaceTutorialTip({ containerRef, targetSelector, lines, shaking, onCo
           </span>
         ))}
       </p>
-      <button type="button" className="sikong-tutorial__confirm" onClick={onConfirm}>
-        确认
-      </button>
+        <button type="button" className="sikong-tutorial__close" onClick={onConfirm} aria-label="继续">
+          →
+        </button>
     </aside>
   )
 }

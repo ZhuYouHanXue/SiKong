@@ -1569,23 +1569,7 @@
   }
 }
 
-/* ===== 卡片“何以相遇”新手引导：复用首页 .sikong-tutorial 模板，红标题左侧 ===== */
-.surface-tutorial-host {
-  position: relative;
-  width: max-content;
-}
-
-.surface-tutorial-anchor {
-  position: absolute;
-  right: 100%;
-  top: 0;
-  z-index: 90001;
-  width: min(300px, 55vw);
-  margin-right: 16px;
-  pointer-events: none;
-  animation: sikong-tutorial-arrive 240ms ease both;
-}
-
+/* ===== 卡片“何以相遇”新手引导：复用首页 .sikong-tutorial 盒子/拦截层/晃动/确认 ===== */
 .sikong-tutorial__confirm {
   position: absolute;
   right: 10px;

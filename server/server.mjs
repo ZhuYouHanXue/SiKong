@@ -6,6 +6,7 @@ import { readFile, stat, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import * as cardsLib from './lib/cards.mjs'
+import { buildOfflineCard } from './lib/offline-cards.mjs'
 import { getModelConfig, modelStatus, probeModel, setRuntimeModelConfig } from './lib/llm.mjs'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -261,7 +262,9 @@ function normalizeCard(raw, fallback) {
   const [typeName, typeNote] = CARD_META[type] || ['司空', '意外探索']
   const head = edgeText(source.head || source.input || fallback.head, '程序在这里发生了一个意外 但你完全可以放任不管')
   const content = source.content && typeof source.content === 'object' ? { ...source.content } : {}
-  content.lines = Array.isArray(content.lines) ? content.lines.map(line => edgeText(line)).filter(Boolean).slice(0, MAX_EMPTY_SENTENCES) : []
+  const isOffline = String(source.entropy || '').startsWith('offline-')
+  const lineCap = isOffline ? 420 : MAX_EMPTY_SENTENCES
+  content.lines = Array.isArray(content.lines) ? content.lines.map(line => edgeText(line)).filter(Boolean).slice(0, lineCap) : []
   content.seed = head
   content.stream = content.lines.join('\n') || clean(content.stream)
   content.streamStatus = clean(content.streamStatus || content.stream_status, type === CARD_TYPES.EMPTY ? 'pending' : 'done')
@@ -302,6 +305,18 @@ async function generateCard(options) {
   }
   if (inFlight.has(key)) return { card: copy(await inFlight.get(key)), cached: true }
   if (typeof composeCard !== 'function') throw new Error('卡片生成引擎未加载')
+
+  // 无 API Key / 模型不可用时，直接返回固定的离线卡片，保证用户仍能使用完整流程。
+  if (!modelAvailable) {
+    const offline = buildOfflineCard(options.type)
+    if (offline) {
+      const card = normalizeCard(offline, options)
+      boundedSet(cards, card.id, card, MAX_CARDS)
+      boundedSet(requestCache, key, card.id, MAX_REQUEST_CACHE)
+      return { card: copy(card), cached: false }
+    }
+  }
+
   const promise = Promise.resolve(composeCard(options)).then(raw => normalizeCard(raw, options))
   inFlight.set(key, promise)
   try {

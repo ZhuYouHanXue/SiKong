@@ -877,6 +877,17 @@
   cursor: pointer;
 }
 
+.empty-card-limit {
+  display: block;
+  margin-top: 12px;
+  color: var(--ink);
+  opacity: 0.55;
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  line-height: 1.9;
+  text-align: left;
+}
+
 .empty-card-status-dots {
   display: inline-flex;
   align-items: baseline;

@@ -124,6 +124,10 @@ function App() {
     if (!tutorialDone('sprout')) return 'sprout'
     return null
   })()
+  const tutorialActive = activeTutorial !== null
+  useEffect(() => {
+    if (tutorialActive && openingType !== CARD_TYPES.SAND_SEA) setOpeningType(CARD_TYPES.SAND_SEA)
+  }, [tutorialActive, openingType])
   useEffect(() => {
     if (isOfflineMode && !activeSeed) {
       setSeed('人工智能')
@@ -391,7 +395,7 @@ function App() {
               写下一个起点
             </label>
             <div className="seed-box">
-              {!isOfflineMode && (
+              {!isOfflineMode && !tutorialActive && (
               <div className="seed-engine-picker">
                 <button type="button" className="seed-engine-select" onClick={() => { setShowSuggestions(false); setShowEngineMenu((value) => !value) }} aria-expanded={showEngineMenu}>{engineNames[openingType]} <i>⌄</i></button>
                 {showEngineMenu && <div className="seed-engine-menu">{Object.entries(engineNames).map(([type, name]) => <button type="button" key={type} className={openingType === type ? 'is-active' : ''} onClick={() => { setOpeningType(type); setShowEngineMenu(false) }}><strong>{name}</strong><small>{engineNotes[type]}</small></button>)}</div>}

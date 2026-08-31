@@ -1011,7 +1011,7 @@
  */
 .sikong-tutorial-anchor {
   position: absolute;
-  top: calc(60px + 96px);
+  top: calc(60px + 65px);
   right: 0;
   z-index: 90001;
   width: min(340px, 100%);

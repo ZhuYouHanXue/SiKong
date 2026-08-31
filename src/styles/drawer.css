@@ -581,6 +581,19 @@
   opacity: 0.55;
 }
 
+.saved-cards-settings-dialog__confirm-text {
+  margin: 0 0 18px;
+  color: var(--ink);
+  font-size: 14px;
+  letter-spacing: 0.1em;
+  line-height: 1.8;
+}
+
+.saved-cards-settings-dialog__confirm-actions {
+  display: flex;
+  gap: 10px;
+}
+
 .saved-cards-settings-dialog__status {
   margin: 0;
   color: #555;

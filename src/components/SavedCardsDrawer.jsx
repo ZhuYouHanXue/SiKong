@@ -294,8 +294,9 @@ const SavedCardsDrawer = forwardRef(function SavedCardsDrawer({
               <button type="button" onClick={closeSettings}>×</button>
             </header>
             <div className="saved-cards-settings-dialog__body">
-              <section className="saved-cards-settings-section">
-                <h2 className="saved-cards-settings-section__title">LLM 配置</h2>
+              {!IS_SHARED_DEPLOYMENT && (
+                <section className="saved-cards-settings-section">
+                  <h2 className="saved-cards-settings-section__title">LLM 配置</h2>
 
                 {settingsStatus === 'loading' && (
                   <p className="saved-cards-settings-dialog__status">正在读取模型配置…</p>
@@ -355,7 +356,8 @@ const SavedCardsDrawer = forwardRef(function SavedCardsDrawer({
                     {settingsMessage}
                   </p>
                 )}
-              </section>
+                </section>
+              )}
 
               <section className="saved-cards-settings-section">
                 <h2 className="saved-cards-settings-section__title">留印管理</h2>

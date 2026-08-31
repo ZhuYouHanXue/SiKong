@@ -385,12 +385,17 @@ const SURFACE_TUTORIAL_TIPS = {
 function SurfaceTutorialTip({ containerRef, targetSelector, lines, shaking, onConfirm, onShakeEnd }) {
   const [pos, setPos] = useState(null)
   useLayoutEffect(() => {
-    const el = containerRef?.current?.querySelector(targetSelector)
-    if (!el) return
-    const r = el.getBoundingClientRect()
-    const width = Math.min(300, window.innerWidth * 0.5)
-    const left = Math.max(12, r.left - 16 - width)
-    setPos({ left, top: r.top, width })
+    const measure = () => {
+      const el = containerRef?.current?.querySelector(targetSelector)
+      if (!el) return
+      const r = el.getBoundingClientRect()
+      const width = Math.min(300, window.innerWidth * 0.5)
+      const left = Math.max(12, r.left - 16 - width)
+      setPos({ left, top: r.top, width })
+    }
+    measure()
+    window.addEventListener('resize', measure)
+    return () => window.removeEventListener('resize', measure)
   }, [containerRef, targetSelector])
 
   return (

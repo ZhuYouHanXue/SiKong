@@ -718,7 +718,6 @@
 
 .page--departing .text-cloud {
   opacity: 0;
-  transition: opacity 160ms ease;
 }
 
 .departure-glyph-layer {

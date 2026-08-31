@@ -8,7 +8,6 @@ import {
   toneBorderParts,
 } from './constants.js'
 import { createExitFragments, shuffle } from './utils.js'
-import SurfaceTutorial from './SurfaceTutorial.jsx'
 
 function UnruledEntrySvg() {
   const svgRef = useRef(null)
@@ -431,7 +430,6 @@ export function CardScene({
   offlineMode = false,
 }) {
   const gestureRef = useRef(null)
-  const cardContentRef = useRef(null)
   const wasShowingRelationRef = useRef(showingRelation)
   const [relationLeaving, setRelationLeaving] = useState(false)
   const emptyStreamBusy = card.type === CARD_TYPES.EMPTY &&
@@ -562,7 +560,6 @@ export function CardScene({
         />
 
         <div
-          ref={cardContentRef}
           className="card-content"
           onPointerDown={(event) => event.stopPropagation()}
         >
@@ -630,7 +627,6 @@ export function CardScene({
         {saved && <span className="save-stamp">留</span>}
         {exitMode === 'avoid' && <span className="avoid-strike" />}
       </article>
-      <SurfaceTutorial card={card} active={stage === 'active'} containerRef={cardContentRef} />
     </div>
   )
 }

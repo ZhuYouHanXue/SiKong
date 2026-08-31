@@ -3,6 +3,13 @@ import { createPortal } from 'react-dom'
 import { getSavedCards, deleteAllSavedCards, getModelConfig, saveModelConfig } from '../services/cards.js'
 import { resetTutorials } from '../services/tutorial.js'
 
+// 「所有用户共享留印」只在服务器部署时成立。本地/开发（localhost、127.0.0.1）
+// 即使配置了 API Key，留印也仅属于本机，因此按「原样」交互：不显示共享提示、删除走原生确认。
+const IS_SHARED_DEPLOYMENT = (() => {
+  const host = window.location.hostname
+  return !['localhost', '127.0.0.1', '::1', '[::1]'].includes(host)
+})()
+
 const cleanText = (value, fallback = '') => String(value ?? fallback).replace(/\s+/g, ' ').trim()
 
 const truncate = (value, maxLength) => {
@@ -151,13 +158,13 @@ const SavedCardsDrawer = forwardRef(function SavedCardsDrawer({
   }, [])
 
   const handleDeleteAll = useCallback(async () => {
-    // 在线模式（留印全局共享）用自定义确认弹窗，警示会删掉所有人的留印。
-    if (!offlineMode) {
+    // 在线且部署在服务器（留印全局共享）用自定义确认弹窗，警示会删掉所有人的留印。
+    if (!offlineMode && IS_SHARED_DEPLOYMENT) {
       setSettingsOpen(false)
       setDeleteConfirmOpen(true)
       return
     }
-    // 离线模式（本地留印）维持原生确认。
+    // 离线模式（本地留印）或本机开发：维持原生确认。
     const confirmed = window.confirm('确定删除所有留印？此操作不可恢复。')
     if (!confirmed) return
     await performDeleteAll()
@@ -229,7 +236,7 @@ const SavedCardsDrawer = forwardRef(function SavedCardsDrawer({
             留印
             <small>SAVED CARDS</small>
           </div>
-          {!offlineMode && (
+          {!offlineMode && IS_SHARED_DEPLOYMENT && (
             <p className="saved-cards-drawer__share-note">
               当前正在使用在线模式，所有用户留印共享，和他们一起邂逅意外吧。
             </p>

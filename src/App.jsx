@@ -308,6 +308,18 @@ function App() {
     }
   }
 
+  const handleReturnHome = () => {
+    window.clearTimeout(returnTimerRef.current)
+    setActiveSeed(null)
+    setMode('explore')
+    setTransition('returning')
+    setStatus('idle')
+    returnTimerRef.current = window.setTimeout(() => {
+      setTransition((current) => current === 'returning' ? null : current)
+      returnTimerRef.current = null
+    }, 850)
+  }
+
   const statusText = {
     idle: '一个字，也足以成为起点',
     empty: '请先留下一点已知',
@@ -327,19 +339,9 @@ function App() {
           onSearchInputChange={setSeed}
           onSearchTypeChange={setOpeningType}
           candidatePool={candidates}
-          onReturn={() => {
-            window.clearTimeout(returnTimerRef.current)
-            setActiveSeed(null)
-            setMode('explore')
-            setTransition('returning')
-            setStatus('idle')
-            returnTimerRef.current = window.setTimeout(() => {
-              setTransition((current) => current === 'returning' ? null : current)
-              returnTimerRef.current = null
-            }, 850)
-          }}
+          onReturn={handleReturnHome}
         />
-        <SavedCardsDrawer variant="icon" onOpenCard={handleOpenSavedCard} offlineMode={isOfflineMode} />
+        <SavedCardsDrawer variant="icon" onOpenCard={handleOpenSavedCard} offlineMode={isOfflineMode} onReturnHome={handleReturnHome} />
       </>
     )
   }
@@ -545,7 +547,7 @@ function App() {
         </div>
       )}
 
-      <SavedCardsDrawer ref={savedCardsDrawerRef} variant="embedded" onOpenCard={handleOpenSavedCard} offlineMode={isOfflineMode} />
+      <SavedCardsDrawer ref={savedCardsDrawerRef} variant="embedded" onOpenCard={handleOpenSavedCard} offlineMode={isOfflineMode} onReturnHome={handleReturnHome} />
     </div>
   )
 }

@@ -1005,23 +1005,28 @@
   }
 }
 
-/* ===== 新手引导文字框 =====
- * 纯浏览器端，位于“由此生枝”按钮下方；点击“由此生枝”后由 App 隐藏并标记完成。
+/* ===== 新手引导（分三步） =====
+ * 层级在最上（90000+），盖住按钮/菜单，但在侧边栏遮罩(100000)之下。
+ * 块1 欢迎：拦截式，点别处晃动，右下红箭头关闭；块2/3 为不可关闭的提示。
  */
-.sikong-tutorial {
+.sikong-tutorial-anchor {
   position: absolute;
-  top: calc(60px + 18px);
+  top: calc(60px + 34px);
   right: 0;
-  z-index: 6;
+  z-index: 90001;
   width: min(340px, 100%);
-  padding: 14px 16px 15px;
+  pointer-events: none;
+  animation: sikong-tutorial-arrive 240ms ease both;
+}
+
+.sikong-tutorial {
+  position: relative;
+  padding: 14px 16px 18px;
   border: var(--hairline);
   background: var(--paper);
   color: var(--ink);
   box-shadow: 8px 8px 16px rgba(0, 0, 0, 0.16);
-  pointer-events: none;
   text-align: left;
-  animation: sikong-tutorial-arrive 240ms ease both;
 }
 
 .sikong-tutorial p {
@@ -1029,6 +1034,52 @@
   font-size: 14px;
   letter-spacing: 0.05em;
   line-height: 1.8;
+}
+
+.sikong-tutorial--shake {
+  animation: sikong-tutorial-shake 400ms ease;
+}
+
+.sikong-tutorial-blocker {
+  position: fixed;
+  inset: 0;
+  z-index: 90000;
+  pointer-events: auto;
+}
+
+.sikong-tutorial__close {
+  position: absolute;
+  right: 8px;
+  bottom: 6px;
+  pointer-events: auto;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--seal);
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+}
+
+@keyframes sikong-tutorial-shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-6px);
+  }
+  40% {
+    transform: translateX(6px);
+  }
+  60% {
+    transform: translateX(-4px);
+  }
+  80% {
+    transform: translateX(4px);
+  }
 }
 
 @keyframes sikong-tutorial-arrive {

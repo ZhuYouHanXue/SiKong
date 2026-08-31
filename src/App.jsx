@@ -69,7 +69,21 @@ function App() {
   const [openingType, setOpeningType] = useState(CARD_TYPES.SAND_SEA)
   const [savedCardRequest, setSavedCardRequest] = useState(null)
   const [showEngineMenu, setShowEngineMenu] = useState(false)
-  const [showSproutHelp, setShowSproutHelp] = useState(() => !tutorialDone('sprout'))
+  const [welcomeShake, setWelcomeShake] = useState(false)
+  const [, setTutorialRevision] = useState(0)
+  const bumpTutorial = () => setTutorialRevision((value) => value + 1)
+  const triggerTutorialShake = (event) => {
+    event?.preventDefault()
+    event?.stopPropagation()
+    if (!welcomeShake) setWelcomeShake(true)
+  }
+  const handleTutorialShakeEnd = (event) => {
+    if (event?.animationName === 'sikong-tutorial-shake') setWelcomeShake(false)
+  }
+  const closeWelcomeTutorial = () => {
+    markTutorialDone('welcome')
+    bumpTutorial()
+  }
   const engineNames = {
     [CARD_TYPES.SAND_SEA]: '沙海', [CARD_TYPES.MAGIC_TONE]: '湮律', [CARD_TYPES.UNRULED]: '不守',
     [CARD_TYPES.WORD_REVERSE]: '尔反', [CARD_TYPES.BLIND_POEM]: '盲诗', [CARD_TYPES.BOOK_OF_ANSWERS]: '全书', [CARD_TYPES.EMPTY]: '空',
@@ -103,6 +117,13 @@ function App() {
     return () => { cancelled = true }
   }, [])
   const isOfflineMode = modelAvailable === false
+  const activeTutorial = (() => {
+    if (isOfflineMode) return null
+    if (!tutorialDone('welcome')) return 'welcome'
+    if (!tutorialDone('enter')) return 'enter'
+    if (!tutorialDone('sprout')) return 'sprout'
+    return null
+  })()
   useEffect(() => {
     if (isOfflineMode && !activeSeed) {
       setSeed('人工智能')
@@ -247,13 +268,20 @@ function App() {
     setShowSuggestions(false)
     setMode('explore')
     setTransition('departing')
-    markTutorialDone('sprout')
-    setShowSproutHelp(false)
+    if (!tutorialDone('sprout')) {
+      markTutorialDone('sprout')
+      bumpTutorial()
+    }
   }
 
   const handleChange = (event) => {
-    setSeed(event.target.value)
+    const nextValue = event.target.value
+    setSeed(nextValue)
     setShowSuggestions(true)
+    if (nextValue.trim() && !tutorialDone('enter')) {
+      markTutorialDone('enter')
+      bumpTutorial()
+    }
     if (status !== 'idle') {
       setStatus('idle')
     }
@@ -264,6 +292,10 @@ function App() {
     setStatus('idle')
     setShowSuggestions(false)
     inputRef.current?.focus()
+    if (topic.trim() && !tutorialDone('enter')) {
+      markTutorialDone('enter')
+      bumpTutorial()
+    }
   }
 
   const handleOpenSavedCard = (savedCard) => {
@@ -387,14 +419,41 @@ function App() {
               </button>
             </div>
 
-            {!isOfflineMode && showSproutHelp && (
-              <aside className="sikong-tutorial" role="note" aria-label="新手引导">
-                <p>
-                  欢迎来到司空，这是一个意外探索与灵感漫游应用。<br />
-                  随便输入点什么，或直接选择一条“猜你不喜欢”，<br />
-                  之后，由此生枝，邂逅意外
-                </p>
-              </aside>
+            {activeTutorial === 'welcome' && (
+              <>
+                <div className="sikong-tutorial-blocker" onClick={triggerTutorialShake} aria-hidden="true" />
+                <div className="sikong-tutorial-anchor">
+                  <aside
+                    className={`sikong-tutorial sikong-tutorial--welcome ${welcomeShake ? 'sikong-tutorial--shake' : ''}`}
+                    role="alertdialog"
+                    aria-label="新手引导"
+                    onAnimationEnd={handleTutorialShakeEnd}
+                  >
+                    <p>
+                      欢迎来到司空，<br />
+                      这是一个意外探索与灵感漫游应用。
+                    </p>
+                    <button type="button" className="sikong-tutorial__close" onClick={closeWelcomeTutorial} aria-label="继续">→</button>
+                  </aside>
+                </div>
+              </>
+            )}
+            {activeTutorial === 'enter' && (
+              <div className="sikong-tutorial-anchor">
+                <aside className="sikong-tutorial" role="note" aria-label="新手引导">
+                  <p>
+                    随便输入点什么，<br />
+                    或者直接选择一条“猜你不喜欢”
+                  </p>
+                </aside>
+              </div>
+            )}
+            {activeTutorial === 'sprout' && (
+              <div className="sikong-tutorial-anchor">
+                <aside className="sikong-tutorial" role="note" aria-label="新手引导">
+                  <p>之后，由此生枝，邂逅意外。</p>
+                </aside>
+              </div>
             )}
 
             {!isOfflineMode && (

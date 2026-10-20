@@ -48,6 +48,7 @@ const SHARED_TIPS = [
   '上一次看到我是什么时候',
   '你无法知晓 卡片是在胡言乱语 还是在制造意外',
   '其实主页的logo是可以点击的',
+  '这个sk开头的密钥怎么使用司空的首字母啊 可恶的牢梁竟然盗窃我的劳动成果',
 ]
 
 export function getLoadingTips() {

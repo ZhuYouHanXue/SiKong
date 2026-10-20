@@ -11,6 +11,7 @@
     "dev:web": "vite",
     "dev:server": "node --watch server/server.mjs",
     "quickstart": "node scripts/start.mjs",
+    "shisuan": "node scripts/shisuan-cli.mjs",
     "build": "vite build",
     "start": "node server/server.mjs",
     "start:server": "node server/server.mjs",

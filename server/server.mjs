@@ -719,6 +719,10 @@ async function handleShisuan(request, response, pathname, context) {
     if (context.signal.aborted) return null
     return sendJSON(response, 200, result)
   }
+  const skipMatch = pathname.match(/^\/api\/shisuan\/games\/([^/]+)\/skip$/)
+  if (skipMatch && request.method === 'POST') {
+    return sendJSON(response, 200, shisuan.skipGame({ gameId: decodeURIComponent(skipMatch[1]) }))
+  }
   const boardMatch = pathname.match(/^\/api\/shisuan\/games\/([^/]+)\/board$/)
   if (boardMatch && request.method === 'POST') {
     const body = await readBody(request, context.signal)

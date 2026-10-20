@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { getShisuanBoard, getShisuanInfo, playShisuanRound, startShisuan, submitShisuanBoard } from '../services/shisuan.js'
+import { getShisuanBoard, getShisuanInfo, playShisuanRound, skipShisuan, startShisuan, submitShisuanBoard } from '../services/shisuan.js'
 
 const MAX_WORD = 6
 const MAX_REASON = 60
@@ -261,6 +261,24 @@ function ShiSuan({ onExit }) {
     setReveal(null)
   }
 
+  const skip = async () => {
+    if (busy) return
+    setError('')
+    setRejection(null)
+    setBusy(true)
+    try {
+      const result = await skipShisuan(game.gameId)
+      setTotal(result.total)
+      setSummary(result.summary)
+      setReveal(null)
+      setView('summary')
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setBusy(false)
+    }
+  }
+
   const submitBoard = async (event) => {
     event.preventDefault()
     if (busy) return
@@ -353,6 +371,11 @@ function ShiSuan({ onExit }) {
                   <i className={len(reason) > MAX_REASON ? 'is-over' : ''}>{len(reason)} / {MAX_REASON}</i>
                 </label>
                 <button type="submit" className="shisuan-button shisuan-button--ink" disabled={busy}>{busy ? '司空正在逐字读……' : '落笔'}</button>
+                {!busy && (
+                  <button type="button" className="shisuan-skip" onClick={skip}>
+                    去，哪来那么多规矩呀<small>跳过剩下的{ORDINALS[TOTAL - rounds.length - 1]}枝 · 不计损失 · 没有评语</small>
+                  </button>
+                )}
 
                 {busy && (
                   <div className="shisuan-reading" aria-live="polite">
@@ -383,12 +406,12 @@ function ShiSuan({ onExit }) {
 
         {view === 'summary' && summary && (
           <section className="shisuan-summary">
-            <p className="shisuan-summary__label">七枝已尽 · 总损失</p>
+            <p className="shisuan-summary__label">{summary.skipped ? `跳过了${ORDINALS[summary.skipped - 1]}枝 · 总损失` : '七枝已尽 · 总损失'}</p>
             <strong className="shisuan-summary__total">{fmtLoss(summary.total)}</strong>
-            <div className="shisuan-title-seal"><span>{summary.title}</span></div>
-            <p className="shisuan-summary__sentence">{summary.sentence}</p>
+            {summary.title && <div className="shisuan-title-seal"><span>{summary.title}</span></div>}
+            {summary.sentence && <p className="shisuan-summary__sentence">{summary.sentence}</p>}
             <Chain words={summary.chain} current={false} />
-            <LossCurve losses={summary.losses} />
+            {summary.losses.length > 0 && <LossCurve losses={summary.losses} />}
 
             {summary.rankable ? (
               boardResult ? (
@@ -403,7 +426,7 @@ function ShiSuan({ onExit }) {
                 </form>
               )
             ) : (
-              <p className="shisuan-board__note">随机起点不计入损失榜。想上榜，试试今日起点。</p>
+              <p className="shisuan-board__note">{game?.mode === 'daily' ? '一枝都没走，损失榜上没处挂。' : '随机起点不计入损失榜。想上榜，试试今日起点。'}</p>
             )}
             {error && <p className="shisuan-error">{error}</p>}
 

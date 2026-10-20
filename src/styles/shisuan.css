@@ -494,6 +494,35 @@
   letter-spacing: 0.3em;
 }
 
+.shisuan-skip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: center;
+  gap: 4px 10px;
+  width: 100%;
+  margin-top: 12px;
+  padding: 8px 0;
+  border: 0;
+  background: transparent;
+  color: #777;
+  font-size: 14px;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  transition: color 180ms ease;
+}
+
+.shisuan-skip small { color: #aaa; font-size: 12px; }
+
+.shisuan-skip:hover,
+.shisuan-skip:focus-visible {
+  outline: 0;
+  color: var(--seal);
+}
+
+.shisuan-skip:hover small,
+.shisuan-skip:focus-visible small { color: var(--seal); }
+
 /* ---------- 结算 ---------- */
 
 .shisuan-summary { text-align: center; }

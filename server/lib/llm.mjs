@@ -234,9 +234,8 @@ export async function nextTokenLogprobs({ system, user, prefix = '', signal, tim
       const data = JSON.parse(raw)
       const choice = data.choices?.[0]
       const first = choice?.logprobs?.content?.[0]
-      // 模型直接抽中了「结束」：这种情况接口不返回概率，交给调用方处理
-      if (!first && choice?.finish_reason === 'stop' && !choice?.message?.content) return null
-      if (!first || !Array.isArray(first.top_logprobs)) throw new Error('模型没有返回概率数据')
+      // 模型直接抽中了「结束」，或这一次偶尔没带概率：返回 null，交给调用方重问
+      if (!first || !Array.isArray(first.top_logprobs)) return null
       const seen = new Map()
       for (const entry of first.top_logprobs) {
         const logprob = Number(entry?.logprob)

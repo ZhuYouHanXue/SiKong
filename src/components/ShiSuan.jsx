@@ -1,62 +1,58 @@
 import { useEffect, useRef, useState } from 'react'
-import { LEVELS, attemptShisuan, getShisuanInfo, loadProgress, recordAttempt, threshold } from '../services/shisuan.js'
-
-const MAX_WORD = 6
-const MIN_REASON = 4
-const MAX_REASON = 60
+import { LEVELS, MAX_EXPLAIN, MAX_WORD, MIN_EXPLAIN, attemptShisuan, getShisuanInfo, loadProgress, recordAttempt, threshold } from '../services/shisuan.js'
 
 const len = (value) => Array.from(String(value ?? '')).length
 const fmt = (value) => Number(value || 0).toFixed(2)
-const pct = (p) => (p >= 0.995 ? '>99%' : p >= 0.1 ? `${(p * 100).toFixed(0)}%` : p >= 0.001 ? `${(p * 100).toFixed(1)}%` : '<0.1%')
+
+/* 逐字热度：每个片段按它的信息量着色，越出人意料越红 */
+function Heat({ pieces }) {
+  const max = Math.max(...pieces.map((piece) => piece.info), 1)
+  return (
+    <p className="shisuan-heat" aria-label="逐字信息量">
+      {pieces.map((piece, index) => (
+        <span
+          key={index}
+          className={piece.inTop ? '' : 'is-estimated'}
+          style={{ '--heat': Math.min(1, piece.info / max) }}
+          title={`${piece.inTop ? '' : '≈ '}${fmt(piece.info)}${piece.inTop ? '' : '（没进司空的前 20 个候选，为估算值）'}`}
+        >
+          {piece.text}
+          <small>{piece.inTop ? '' : '≈'}{piece.info >= 10 ? piece.info.toFixed(0) : piece.info.toFixed(1)}</small>
+        </span>
+      ))}
+    </p>
+  )
+}
 
 function Result({ result }) {
-  const inList = result.predictions.some((item) => item.text === result.word)
-  const rows = inList ? result.predictions : [...result.predictions, { text: result.word, probability: result.probability, mine: true }]
-  const maxP = Math.max(...rows.map((item) => item.probability), 0.0001)
-  // 损失刻度：过关线放在 60% 处，超出的部分压在右侧
-  const scaleMax = Math.max(result.threshold / 0.6, result.loss * 1.08)
+  // 刻度：过关线放在 60% 处，超出的部分压在右侧
+  const scaleMax = Math.max(result.threshold / 0.6, result.score * 1.08)
   return (
     <section className={`shisuan-result ${result.passed ? 'is-passed' : 'is-failed'}`} aria-live="polite">
       <div className="shisuan-result__head">
         <div className="shisuan-result__loss">
-          <small>损失</small>
-          <strong>{fmt(result.loss)}</strong>
-          <span>司空认为你会说 ⌜{result.word}⌟ 的概率约 1/{result.odds}</span>
+          <small>解释的信息量</small>
+          <strong>{fmt(result.score)}</strong>
+          <span>每字 {fmt(result.perChar)} · 司空写出你这句话的概率约 1/{result.odds}{result.estimated ? '（含估算）' : ''}</span>
         </div>
         <div className="shisuan-result__seal" aria-label={result.passed ? '过关' : `印：${result.seal}`}>
           {result.passed ? <span className="is-big">过</span> : Array.from(result.seal).map((char) => <span key={char}>{char}</span>)}
         </div>
       </div>
 
-      <div className="shisuan-meter" role="img" aria-label={`损失 ${fmt(result.loss)}，过关线 ${result.threshold}`}>
-        <i className="shisuan-meter__fill" style={{ '--w': `${Math.min(100, (result.loss / scaleMax) * 100)}%` }} />
+      <div className="shisuan-meter" role="img" aria-label={`信息量 ${fmt(result.score)}，过关线 ${result.threshold}`}>
+        <i className="shisuan-meter__fill" style={{ '--w': `${Math.min(100, (result.score / scaleMax) * 100)}%` }} />
         <i className="shisuan-meter__line" style={{ '--x': `${(result.threshold / scaleMax) * 100}%` }}><b>过关线 {result.threshold}</b></i>
       </div>
-      <p className="shisuan-result__verdict">{result.passed ? '司空失算了。下一关已解锁。' : `还差 ${fmt(result.threshold - result.loss)}，司空还猜得到你。`}</p>
+      <p className="shisuan-result__verdict">{result.passed ? '司空失算了。下一关已解锁。' : `还差 ${fmt(result.threshold - result.score)}，这句话司空还写得出来。`}</p>
 
       <blockquote className="shisuan-result__comment">{result.comment}</blockquote>
-      {result.critique && <p className="shisuan-result__critique">{result.selfReasoned ? '司空替你圆的' : '何以相遇'} · {result.critique}</p>}
+      {result.critique && <p className="shisuan-result__critique">司空点评 · {result.critique}</p>}
 
-      <details className="shisuan-predict">
-        <summary>司空最先想到的</summary>
-        <ul>
-          {rows.map((item) => {
-            const mine = item.mine || item.text === result.word
-            return (
-              <li key={item.text} className={mine ? 'is-mine' : ''}>
-                <span>{item.text}</span>
-                <span className="shisuan-predict__bar"><i style={{ '--w': `${Math.max(1, (item.probability / maxP) * 100)}%` }} /></span>
-                <span className="shisuan-predict__p">{mine && !inList ? `约 1/${result.odds}` : pct(item.probability)}</span>
-              </li>
-            )
-          })}
-        </ul>
-        <p className="shisuan-pieces">
-          逐字读
-          {result.pieces.map((piece, index) => (
-            <span key={index} className={piece.inTop ? '' : 'is-out'}>{piece.end ? '收笔' : piece.text}<small>{fmt(piece.loss)}</small></span>
-          ))}
-        </p>
+      <details className="shisuan-predict" open>
+        <summary>逐字读：哪些字让司空意外</summary>
+        <Heat pieces={result.pieces} />
+        {result.estimated && <p className="shisuan-note">带「≈」的字没进司空的前 20 个候选，接口不给它的真实概率。它只能比第 20 名更低，这里按「第 20 名再低 1」估算，所以是估算值。</p>}
       </details>
     </section>
   )
@@ -87,7 +83,7 @@ function ShiSuan({ onClose }) {
   const [progress, setProgress] = useState(loadProgress)
   const [level, setLevel] = useState(() => loadProgress().unlocked)
   const [word, setWord] = useState('')
-  const [reason, setReason] = useState('')
+  const [explain, setExplain] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [rejection, setRejection] = useState(null)
@@ -126,7 +122,7 @@ function ShiSuan({ onClose }) {
   const goTo = (next) => {
     setLevel(next)
     setWord('')
-    setReason('')
+    setExplain('')
     setError('')
     setRejection(null)
     setResult(null)
@@ -134,23 +130,24 @@ function ShiSuan({ onClose }) {
     dialogRef.current?.scrollTo?.({ top: 0 })
   }
 
-  const submit = async (withReason) => {
+  const submit = async (event) => {
+    event.preventDefault()
     if (busy) return
     const w = word.trim()
-    const r = withReason ? reason.trim() : ''
+    const e = explain.trim()
     if (!w) { setError('先写下你的联想'); wordRef.current?.focus(); return }
     if (len(w) > MAX_WORD) { setError(`联想词最多${MAX_WORD}个字`); return }
     if (w === prompt) { setError('不能原样照抄题目'); return }
-    if (withReason && len(r) < MIN_REASON) { setError(`写个理由（至少${MIN_REASON}个字），或者点「去，哪来那么多规矩呀」`); return }
-    if (len(r) > MAX_REASON) { setError(`理由最多${MAX_REASON}个字`); return }
+    if (len(e) < MIN_EXPLAIN) { setError(`解释至少写${MIN_EXPLAIN}个字`); return }
+    if (len(e) > MAX_EXPLAIN) { setError(`解释最多${MAX_EXPLAIN}个字`); return }
     setError('')
     setRejection(null)
     setResult(null)
     setBusy(true)
     try {
-      const value = await attemptShisuan(level, w, r)
+      const value = await attemptShisuan(level, w, e)
       if (!value.accepted) {
-        setRejection({ message: value.message, critique: value.critique, selfReasoned: !r })
+        setRejection({ message: value.message, critique: value.critique })
         return
       }
       setResult(value)
@@ -162,11 +159,8 @@ function ShiSuan({ onClose }) {
     }
   }
 
-  const retry = () => {
-    setResult(null)
-    setWord('')
-    setReason('')
-  }
+  // 再试一次时保留上一句，方便在原句上改
+  const retry = () => setResult(null)
 
   return (
     <div className="shisuan-layer">
@@ -185,10 +179,10 @@ function ShiSuan({ onClose }) {
 
         {showRules && (
           <ol className="shisuan-rules">
-            <li>写一个由题目联想到的词，再说说为什么。</li>
-            <li>司空逐字估算它自己说出这个词的概率，损失 = −ln(概率)。它越想不到，损失越高。</li>
-            <li>损失达到<em>过关线</em>即通关，解锁下一个词。过关线会越来越高。</li>
-            <li>理由说不通，这一笔不算。懒得写理由，就点「去，哪来那么多规矩呀」，让司空自己判断说不说得通。</li>
+            <li>由题目写一个联想词，再用一句话（{MIN_EXPLAIN} 到 {MAX_EXPLAIN} 字）解释你是怎么想到的。</li>
+            <li>司空会先看这句话是否通顺、有意义、说得通。乱写、堆砌词语、空话，这一笔不算。</li>
+            <li>说得通，就算这句解释的<em>信息量</em>：司空已知题目和联想词，逐字猜你会怎么写，每个字的 −ln(概率) 加起来就是总分。越出乎它意料，分越高。</li>
+            <li>信息量达到<em>过关线</em>即通关，解锁下一个词。过关线会越来越高。</li>
           </ol>
         )}
 
@@ -206,7 +200,7 @@ function ShiSuan({ onClose }) {
           <>
             <div className="shisuan-prompt">
               <span key={level}>⌜{prompt}⌟</span>
-              <small>过关线 · 损失 ≥ {line}</small>
+              <small>过关线 · 信息量 ≥ {line}</small>
             </div>
 
             {!available && <p className="shisuan-error">失算需要司空的大脑：请先在「留印 → 设置」中配置 DeepSeek API Key。</p>}
@@ -215,40 +209,43 @@ function ShiSuan({ onClose }) {
               <>
                 <Result result={result} />
                 <div className="shisuan-actions">
-                  <button type="button" className="shisuan-button" onClick={retry}>再试一个词</button>
+                  <button type="button" className="shisuan-button" onClick={retry}>改一改再试</button>
                   {result.passed && level < LEVELS.length && (
                     <button type="button" className="shisuan-button shisuan-button--ink" onClick={() => goTo(level + 1)} autoFocus>下一关 →</button>
                   )}
                 </div>
               </>
             ) : (
-              <form className="shisuan-form" onSubmit={(event) => { event.preventDefault(); submit(true) }}>
+              <form className="shisuan-form" onSubmit={submit}>
                 <label className="shisuan-field">
                   <span>联想</span>
-                  <input ref={wordRef} value={word} onChange={(event) => { setWord(event.target.value); setError('') }} placeholder="一个司空想不到的词" disabled={busy || !available} autoComplete="off" />
+                  <input ref={wordRef} value={word} onChange={(event) => { setWord(event.target.value); setError('') }} placeholder="由题目想到的一个词" disabled={busy || !available} autoComplete="off" />
                   <i className={len(word) > MAX_WORD ? 'is-over' : ''}>{len(word)} / {MAX_WORD}</i>
                 </label>
                 <label className="shisuan-field">
-                  <span>何以相遇</span>
-                  <textarea value={reason} onChange={(event) => { setReason(event.target.value); setError('') }} placeholder={`为什么从 ⌜${prompt}⌟ 会想到它？`} rows={2} disabled={busy || !available} />
-                  <i className={len(reason) > MAX_REASON ? 'is-over' : ''}>{len(reason)} / {MAX_REASON}</i>
+                  <span>解释</span>
+                  <textarea
+                    value={explain}
+                    onChange={(event) => { setExplain(event.target.value); setError('') }}
+                    placeholder={`一句话说清楚：从 ⌜${prompt}⌟ 怎么想到它的？越出人意料，信息量越高`}
+                    rows={2}
+                    disabled={busy || !available}
+                  />
+                  <i className={len(explain) > MAX_EXPLAIN || (explain && len(explain) < MIN_EXPLAIN) ? 'is-over' : ''}>{len(explain)} / {MAX_EXPLAIN}</i>
                 </label>
-                <div className="shisuan-submit">
-                  <button type="submit" className="shisuan-button shisuan-button--ink" disabled={busy || !available}>{busy ? '司空正在逐字读……' : '落笔'}</button>
-                  <button type="button" className="shisuan-button shisuan-button--lazy" disabled={busy || !available} onClick={() => submit(false)}>
-                    去，哪来那么多规矩呀<small>不写理由，直接算</small>
-                  </button>
-                </div>
+                <button type="submit" className="shisuan-button shisuan-button--ink shisuan-submit" disabled={busy || !available}>
+                  {busy ? '司空正在逐字读……' : '落笔'}
+                </button>
                 {busy && (
                   <div className="shisuan-reading" aria-hidden="true">
-                    {Array.from(word.trim()).map((char, index) => <span key={index} style={{ '--i': index }}>{char}</span>)}
+                    {Array.from(explain.trim()).slice(0, 12).map((char, index) => <span key={index} style={{ '--i': index }}>{char}</span>)}
                   </div>
                 )}
                 {rejection && (
                   <div className="shisuan-reject" role="alert">
                     <strong>{rejection.message}</strong>
                     {rejection.critique && <p>{rejection.critique}</p>}
-                    <small>{rejection.selfReasoned ? '司空没能替你圆回来。写个理由，或者换个词。' : '这一笔不算，换个词或换个理由，再落一次笔。'}</small>
+                    <small>这一笔不算，改一改解释，再落一次笔。</small>
                   </div>
                 )}
                 {error && <p className="shisuan-error">{error}</p>}
@@ -258,7 +255,7 @@ function ShiSuan({ onClose }) {
             <section className="shisuan-records">
               <header>
                 <span>本关记录</span>
-                <small>{records.length ? `${records.length} 次 · 按损失排序` : '还没有计分的尝试'}</small>
+                <small>{records.length ? `${records.length} 次 · 按信息量排序` : '还没有计分的尝试'}</small>
               </header>
               {records.length > 0 && (
                 <ol>
@@ -266,8 +263,8 @@ function ShiSuan({ onClose }) {
                     <li key={`${item.word}-${item.at}`} className={item.passed ? 'is-passed' : ''}>
                       <span className="shisuan-records__rank">{index + 1}</span>
                       <span className="shisuan-records__word">{item.word}</span>
-                      <span className="shisuan-records__bar"><i style={{ '--w': `${Math.min(100, (item.loss / Math.max(records[0].loss, line)) * 100)}%` }} /></span>
-                      <strong>{fmt(item.loss)}</strong>
+                      <span className="shisuan-records__bar"><i style={{ '--w': `${Math.min(100, (item.score / Math.max(records[0].score, line)) * 100)}%` }} /></span>
+                      <strong>{fmt(item.score)}</strong>
                     </li>
                   ))}
                 </ol>

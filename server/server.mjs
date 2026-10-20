@@ -705,7 +705,7 @@ async function handleShisuan(request, response, pathname, context) {
   const ip = clientIp(request)
   if (pathname === '/api/shisuan/attempt' && request.method === 'POST') {
     const body = await readBody(request, context.signal)
-    const result = await shisuan.attempt({ level: body.level, word: body.word, reason: body.reason, ip, signal: context.signal })
+    const result = await shisuan.attempt({ level: body.level, word: body.word, explain: body.explain, ip, signal: context.signal })
     if (context.signal.aborted) return null
     return sendJSON(response, 200, result)
   }

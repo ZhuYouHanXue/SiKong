@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import BrowseMode from './components/BrowseMode.jsx'
 import SavedCardsDrawer from './components/SavedCardsDrawer.jsx'
+import ShiSuan from './components/ShiSuan.jsx'
 import { CARD_TYPES, getModelConfig } from './services/cards.js'
 import { useCandidateHighlights } from './hooks/useCandidateHighlights.js'
 import candidates from './text/candidates.json'
@@ -70,6 +71,7 @@ function App() {
   const [savedCardRequest, setSavedCardRequest] = useState(null)
   const [showEngineMenu, setShowEngineMenu] = useState(false)
   const [welcomeShake, setWelcomeShake] = useState(false)
+  const [showShisuan, setShowShisuan] = useState(false)
   const [, setTutorialRevision] = useState(0)
   const bumpTutorial = () => setTutorialRevision((value) => value + 1)
   const triggerTutorialShake = (event) => {
@@ -330,6 +332,10 @@ function App() {
     empty: '请先留下一点已知',
     'too-long': '太多了，先控制在28字以内',
   }[status]
+  if (showShisuan) {
+    return <ShiSuan onExit={() => setShowShisuan(false)} />
+  }
+
   if (activeSeed && !transition) {
     return (
       <>
@@ -486,6 +492,11 @@ function App() {
                 ))}
               </div>
             </div>
+            )}
+            {!isOfflineMode && !tutorialActive && (
+              <button type="button" className="shisuan-entry" onClick={() => setShowShisuan(true)}>
+                <i>⌜失算⌟</i>一局<small>让司空猜不中你</small>
+              </button>
             )}
             {!isOfflineMode && showSuggestions && seed.trim() && (
               <div className="seed-suggestions" role="listbox" aria-label="候选话题">

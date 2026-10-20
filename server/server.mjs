@@ -8,6 +8,7 @@ import { fileURLToPath } from 'node:url'
 import * as cardsLib from './lib/cards.mjs'
 import { buildOfflineCard } from './lib/offline-cards.mjs'
 import { getModelConfig, modelStatus, probeModel, setRuntimeModelConfig } from './lib/llm.mjs'
+import * as shisuan from './lib/shisuan.mjs'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 function loadDotEnv(name) {
@@ -30,6 +31,7 @@ const MAX_EMPTY_SENTENCES = Math.max(1, Math.min(9, Number(process.env.SIKONG_EM
 const MAX_EMPTY_LENGTH = Math.max(40, Math.min(180, Number(process.env.SIKONG_EMPTY_MAX_LENGTH || 180)))
 const SAVED_CARDS_FILE = path.join(__dirname, 'saved-cards.json')
 const MODEL_CONFIG_FILE = path.join(__dirname, 'model-config.json')
+const SHISUAN_BOARD_FILE = path.join(__dirname, 'shisuan-board.json')
 const DIST_DIR = path.resolve(__dirname, '..', 'dist')
 let modelAvailable = false
 
@@ -551,9 +553,28 @@ async function handleAPI(request, response, url) {
     return sendJSON(response, 200, publicModelConfig())
   }
 
+  if (pathname === '/api/shisuan/info' && request.method === 'GET') {
+    const day = shisuan.shanghaiDay()
+    return sendJSON(response, 200, { available: modelAvailable, day, dailyWord: shisuan.dailyWord(day), totalRounds: shisuan.TOTAL_ROUNDS })
+  }
+  if (pathname === '/api/shisuan/leaderboard' && request.method === 'GET') {
+    return sendJSON(response, 200, shisuan.leaderboard(url.searchParams.get('scope') === 'all' ? 'all' : 'today'))
+  }
+
   const context = requestContext(request, response)
   const cleanup = () => { if (!pathname.endsWith('/stream')) context.cleanup() }
   try {
+    if (pathname.startsWith('/api/shisuan/')) {
+      try {
+        return await handleShisuan(request, response, pathname, context)
+      } catch (error) {
+        if (isAbort(error, context.signal) || error?.code === 'ABORTED') return null
+        if (error?.status) return sendJSON(response, error.status, { error: error.message, code: error.code })
+        if (error?.code === 'PAYLOAD_TOO_LARGE' || error?.code === 'INVALID_JSON') return sendJSON(response, 400, { error: publicError(error), code: error.code })
+        console.error('[shisuan]', error)
+        return sendJSON(response, 502, { error: '司空走神了，这一笔没有算进去，请再落一次笔', code: 'MODEL_ERROR' })
+      }
+    }
     if (pathname === '/api/model-config' && request.method === 'POST') {
       const body = await readBody(request, context.signal)
       try {
@@ -676,6 +697,37 @@ async function handleAPI(request, response, url) {
   }
 }
 
+function clientIp(request) {
+  if (process.env.SIKONG_TRUST_PROXY === '1') {
+    const forwarded = String(request.headers['x-forwarded-for'] || '').split(',')[0].trim()
+    if (forwarded) return forwarded
+  }
+  return request.socket?.remoteAddress || 'unknown'
+}
+
+async function handleShisuan(request, response, pathname, context) {
+  if (!modelAvailable) return sendJSON(response, 503, { error: '失算需要司空的大脑：请先在设置中配置 DeepSeek API Key', code: 'MODEL_UNAVAILABLE' })
+  const ip = clientIp(request)
+  if (pathname === '/api/shisuan/games' && request.method === 'POST') {
+    const body = await readBody(request, context.signal)
+    return sendJSON(response, 200, shisuan.startGame({ mode: body.mode, ip }))
+  }
+  const roundMatch = pathname.match(/^\/api\/shisuan\/games\/([^/]+)\/rounds$/)
+  if (roundMatch && request.method === 'POST') {
+    const body = await readBody(request, context.signal)
+    const result = await shisuan.playRound({ gameId: decodeURIComponent(roundMatch[1]), word: body.word, reason: body.reason, ip, signal: context.signal })
+    if (context.signal.aborted) return null
+    return sendJSON(response, 200, result)
+  }
+  const boardMatch = pathname.match(/^\/api\/shisuan\/games\/([^/]+)\/board$/)
+  if (boardMatch && request.method === 'POST') {
+    const body = await readBody(request, context.signal)
+    const result = await shisuan.submitToBoard({ gameId: decodeURIComponent(boardMatch[1]), nickname: body.nickname, ip, signal: context.signal })
+    return sendJSON(response, 200, result)
+  }
+  return sendJSON(response, 404, { error: `未知接口：${pathname}` })
+}
+
 const server = createServer(async (request, response) => {
   const url = new URL(request.url, `http://${request.headers.host || `${HOST}:${PORT}`}`)
   try {
@@ -692,6 +744,7 @@ const server = createServer(async (request, response) => {
 
 async function start() {
   await loadRuntimeModelConfig()
+  await shisuan.loadBoard(SHISUAN_BOARD_FILE)
   const probe = await probeModel()
   modelAvailable = probe.ok
 

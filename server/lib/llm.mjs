@@ -176,6 +176,92 @@ export async function generateText({ system, user, maxTokens = 500, temperature 
   return callModel({ system, user, maxTokens, temperature, signal, stage, source })
 }
 
+function decodeTokenBytes(entry) {
+  if (Array.isArray(entry?.bytes) && entry.bytes.length) {
+    const text = Buffer.from(entry.bytes).toString('utf8')
+    // 半个汉字之类的残缺字节解码后会出现替换符，这类 token 无法与用户的词对齐。
+    return text.includes('�') ? null : text
+  }
+  return typeof entry?.token === 'string' ? entry.token : null
+}
+
+/**
+ * 「失算」用：取模型在给定前缀之后、下一个 token 的前 20 名候选及其对数概率。
+ * prefix 为空时走普通接口；非空时走 DeepSeek beta 的对话前缀续写，让模型「读」到用户已写下的部分。
+ * 返回 [{ text, logprob, end }]，text 为 null 的残缺 token 已剔除；logprob 为 -9999 之类的占位值也已剔除。
+ * 若模型这一步直接抽中了「结束」，接口不给概率，此时返回 null。
+ */
+export async function nextTokenLogprobs({ system, user, prefix = '', signal, timeoutMs = 20000 } = {}) {
+  const current = config()
+  if (!current.apiKey) {
+    const error = new Error(`未配置 ${current.provider} API Key`)
+    error.code = 'MODEL_NOT_CONFIGURED'
+    throw error
+  }
+  const base = prefix
+    ? `${new URL(current.baseUrl).origin}/beta`
+    : current.baseUrl.replace(/\/+$/, '')
+  const messages = [
+    { role: 'system', content: system },
+    { role: 'user', content: user },
+  ]
+  if (prefix) messages.push({ role: 'assistant', content: prefix, prefix: true })
+  const body = JSON.stringify({
+    model: current.model,
+    messages,
+    temperature: 1,
+    max_tokens: 1,
+    stream: false,
+    logprobs: true,
+    top_logprobs: 20,
+  })
+  let lastError
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    const request = scopedSignal(signal, timeoutMs)
+    try {
+      const response = await fetch(`${base}/chat/completions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${current.apiKey}` },
+        body,
+        signal: request.signal,
+      })
+      const raw = await response.text()
+      if (!response.ok) {
+        const error = new Error(`模型请求失败（${response.status}）：${raw.slice(0, 240)}`)
+        error.retryable = TRANSIENT_STATUS.has(response.status)
+        throw error
+      }
+      const data = JSON.parse(raw)
+      const choice = data.choices?.[0]
+      const first = choice?.logprobs?.content?.[0]
+      // 模型直接抽中了「结束」：这种情况接口不返回概率，交给调用方处理
+      if (!first && choice?.finish_reason === 'stop' && !choice?.message?.content) return null
+      if (!first || !Array.isArray(first.top_logprobs)) throw new Error('模型没有返回概率数据')
+      const seen = new Map()
+      for (const entry of first.top_logprobs) {
+        const logprob = Number(entry?.logprob)
+        if (!Number.isFinite(logprob) || logprob < -100) continue
+        const rawToken = String(entry?.token ?? '')
+        const end = /end.of.sentence/i.test(rawToken)
+        const text = end ? '' : decodeTokenBytes(entry)
+        if (text === null) continue
+        const key = end ? '\u0000end' : text
+        if (!seen.has(key) || seen.get(key).logprob < logprob) seen.set(key, { text, logprob, end })
+      }
+      const list = [...seen.values()].sort((a, b) => b.logprob - a.logprob)
+      if (!list.length) throw new Error('模型返回的概率数据为空')
+      return list
+    } catch (error) {
+      if (signal?.aborted || isAbortError(error)) throw error
+      lastError = error
+      if (attempt > 0 || error.retryable === false) throw error
+    } finally {
+      request.cleanup()
+    }
+  }
+  throw lastError
+}
+
 /**
  * 服务启动时对模型做一次真实探活。
  * 未配置 Key 时直接判定不可用；配置了 Key 才发一个极小的连通性请求。

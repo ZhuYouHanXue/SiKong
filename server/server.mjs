@@ -31,7 +31,6 @@ const MAX_EMPTY_SENTENCES = Math.max(1, Math.min(9, Number(process.env.SIKONG_EM
 const MAX_EMPTY_LENGTH = Math.max(40, Math.min(180, Number(process.env.SIKONG_EMPTY_MAX_LENGTH || 180)))
 const SAVED_CARDS_FILE = path.join(__dirname, 'saved-cards.json')
 const MODEL_CONFIG_FILE = path.join(__dirname, 'model-config.json')
-const SHISUAN_BOARD_FILE = path.join(__dirname, 'shisuan-board.json')
 const DIST_DIR = path.resolve(__dirname, '..', 'dist')
 let modelAvailable = false
 
@@ -554,11 +553,7 @@ async function handleAPI(request, response, url) {
   }
 
   if (pathname === '/api/shisuan/info' && request.method === 'GET') {
-    const day = shisuan.shanghaiDay()
-    return sendJSON(response, 200, { available: modelAvailable, day, dailyWord: shisuan.dailyWord(day), totalRounds: shisuan.TOTAL_ROUNDS })
-  }
-  if (pathname === '/api/shisuan/leaderboard' && request.method === 'GET') {
-    return sendJSON(response, 200, shisuan.leaderboard(url.searchParams.get('scope') === 'all' ? 'all' : 'today'))
+    return sendJSON(response, 200, { available: modelAvailable, ...shisuan.info() })
   }
 
   const context = requestContext(request, response)
@@ -708,25 +703,10 @@ function clientIp(request) {
 async function handleShisuan(request, response, pathname, context) {
   if (!modelAvailable) return sendJSON(response, 503, { error: '失算需要司空的大脑：请先在设置中配置 DeepSeek API Key', code: 'MODEL_UNAVAILABLE' })
   const ip = clientIp(request)
-  if (pathname === '/api/shisuan/games' && request.method === 'POST') {
+  if (pathname === '/api/shisuan/attempt' && request.method === 'POST') {
     const body = await readBody(request, context.signal)
-    return sendJSON(response, 200, shisuan.startGame({ mode: body.mode, ip }))
-  }
-  const roundMatch = pathname.match(/^\/api\/shisuan\/games\/([^/]+)\/rounds$/)
-  if (roundMatch && request.method === 'POST') {
-    const body = await readBody(request, context.signal)
-    const result = await shisuan.playRound({ gameId: decodeURIComponent(roundMatch[1]), word: body.word, reason: body.reason, ip, signal: context.signal })
+    const result = await shisuan.attempt({ level: body.level, word: body.word, explain: body.explain, ip, signal: context.signal })
     if (context.signal.aborted) return null
-    return sendJSON(response, 200, result)
-  }
-  const skipMatch = pathname.match(/^\/api\/shisuan\/games\/([^/]+)\/skip$/)
-  if (skipMatch && request.method === 'POST') {
-    return sendJSON(response, 200, shisuan.skipGame({ gameId: decodeURIComponent(skipMatch[1]) }))
-  }
-  const boardMatch = pathname.match(/^\/api\/shisuan\/games\/([^/]+)\/board$/)
-  if (boardMatch && request.method === 'POST') {
-    const body = await readBody(request, context.signal)
-    const result = await shisuan.submitToBoard({ gameId: decodeURIComponent(boardMatch[1]), nickname: body.nickname, ip, signal: context.signal })
     return sendJSON(response, 200, result)
   }
   return sendJSON(response, 404, { error: `未知接口：${pathname}` })
@@ -748,7 +728,6 @@ const server = createServer(async (request, response) => {
 
 async function start() {
   await loadRuntimeModelConfig()
-  await shisuan.loadBoard(SHISUAN_BOARD_FILE)
   const probe = await probeModel()
   modelAvailable = probe.ok
 

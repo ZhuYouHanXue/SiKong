@@ -1,7 +1,7 @@
 /*
  * 「失算」的全部文案。
  *
- * 评语不分档：每轮从同一个池子里随机抽，公式评语里的 n 按本轮真实损失现算。
+ * 评语不分档：每次从同一个池子里随机抽，公式评语里的 n 按本次真实损失现算。
  * n 一律向下取整，因此「比……还疯狂」在数学上永远成立——哪怕 n 是 0。
  * 损失单位为 nat（自然对数），一件概率为 p 的事的损失是 -ln(p)。
  */
@@ -47,19 +47,6 @@ export const REJECTIONS = [
   '再给司空一个说得通的理由，它就认输',
 ]
 
-// 方案 B：称号与总分无关，完全随机
-export const TITLES = ['司空见惯', '偶有意外', '意外频生', '司空失算', '司空不见']
-
-const SUMMARY_FORMULAS = [
-  { cost: 45.21, render: n => `你让司空失算的程度，超过了连续${n}次随手一拧就复原魔方` }, // 魔方约 4.3×10^19 种状态
-  { cost: 156.36, render: n => `把一副扑克洗乱${n}次，每次都恰好排回出厂顺序，都比你好猜` }, // 52! 种顺序
-]
-const SUMMARY_PLAIN = [
-  '七轮下来，司空一次都没慌过',
-  '司空偶尔眨了眨眼，然后又恢复了平静',
-  '七次落笔，七次让司空措手不及',
-]
-
 // 印章也不分档，随机盖
 export const SEALS = ['意外', '见惯', '失算', '惊异', '骇然', '寻常', '微澜']
 
@@ -78,7 +65,7 @@ export function formatBigNumber(value) {
 
 const pick = items => items[Math.floor(Math.random() * items.length)]
 
-/** 抽一句本轮评语。used 为本局已用过的评语 key 集合，同一局不重复。 */
+/** 抽一句评语。used 为已用过的评语 key 集合（可选），用于避免重复。 */
 export function drawComment(loss, used = new Set()) {
   const formulaPool = FORMULA_COMMENTS.map((item, index) => ({ key: `f${index}`, item })).filter(({ key }) => !used.has(key))
   const plainPool = PLAIN_COMMENTS.map((text, index) => ({ key: `p${index}`, text })).filter(({ key }) => !used.has(key))
@@ -97,23 +84,5 @@ export function drawComment(loss, used = new Set()) {
   return pick(PLAIN_COMMENTS)
 }
 
-export function drawSummary(total) {
-  const title = pick(TITLES)
-  const useFormula = Math.random() < 0.5
-  const sentence = useFormula
-    ? (() => { const item = pick(SUMMARY_FORMULAS); return item.render(Math.floor(Math.max(0, total) / item.cost + 1e-9)) })()
-    : pick(SUMMARY_PLAIN)
-  return { title, sentence }
-}
-
 export const drawRejection = () => pick(REJECTIONS)
 export const drawSeal = () => pick(SEALS)
-
-// 开局词：每日起点按日期固定选一个，随机起点随便抽
-export const START_WORDS = [
-  '雨夜', '旧车票', '便利店', '晾衣架', '退潮', '月台', '橘子', '台灯', '回声', '雪地',
-  '邮筒', '风筝', '蝉鸣', '旧毛衣', '早班车', '水杯', '路口', '钥匙', '屋檐', '烟花',
-  '黑板', '晚霞', '自行车', '公交卡', '外婆', '灯塔', '冰箱', '石榴', '电梯', '天桥',
-  '雨伞', '信封', '玻璃', '麦田', '钟表', '咖啡', '书签', '轮渡', '霓虹', '口琴',
-  '枕头', '花盆', '列车', '海鸥', '纸飞机', '围巾', '体育课', '草稿纸', '放学', '冬至',
-]

@@ -332,10 +332,6 @@ function App() {
     empty: '请先留下一点已知',
     'too-long': '太多了，先控制在28字以内',
   }[status]
-  if (showShisuan) {
-    return <ShiSuan onExit={() => setShowShisuan(false)} />
-  }
-
   if (activeSeed && !transition) {
     return (
       <>
@@ -495,7 +491,7 @@ function App() {
             )}
             {!isOfflineMode && !tutorialActive && (
               <button type="button" className="shisuan-entry" onClick={() => setShowShisuan(true)}>
-                <i>⌜失算⌟</i>一局<small>让司空猜不中你</small>
+                <i>⌜失算⌟</i>闯一关<small>让司空猜不中你</small>
               </button>
             )}
             {!isOfflineMode && showSuggestions && seed.trim() && (
@@ -562,6 +558,8 @@ function App() {
           ))}
         </div>
       )}
+
+      {showShisuan && <ShiSuan onClose={() => setShowShisuan(false)} />}
 
       <SavedCardsDrawer ref={savedCardsDrawerRef} variant="embedded" onOpenCard={handleOpenSavedCard} offlineMode={isOfflineMode} onReturnHome={handleReturnHome} />
     </div>

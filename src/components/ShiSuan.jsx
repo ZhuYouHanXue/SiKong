@@ -1,190 +1,102 @@
 import { useEffect, useRef, useState } from 'react'
-import { getShisuanBoard, getShisuanInfo, playShisuanRound, skipShisuan, startShisuan, submitShisuanBoard } from '../services/shisuan.js'
-
-const MAX_WORD = 6
-const MAX_REASON = 60
-const MAX_NICKNAME = 12
-const TOTAL = 7
-const ORDINALS = ['一', '二', '三', '四', '五', '六', '七']
+import { LEVELS, MAX_EXPLAIN, MAX_WORD, MIN_EXPLAIN, attemptShisuan, getShisuanInfo, loadProgress, recordAttempt, threshold } from '../services/shisuan.js'
 
 const len = (value) => Array.from(String(value ?? '')).length
-const fmtLoss = (value) => Number(value || 0).toFixed(2)
-const fmtPercent = (p) => {
-  if (p >= 0.995) return '>99%'
-  if (p >= 0.1) return `${(p * 100).toFixed(0)}%`
-  if (p >= 0.001) return `${(p * 100).toFixed(1)}%`
-  return '<0.1%'
+const fmt = (value) => Number(value || 0).toFixed(2)
+
+/* 逐字热度：每个片段按它的信息量着色，越出人意料越红 */
+function Heat({ pieces }) {
+  const max = Math.max(...pieces.map((piece) => piece.info), 1)
+  return (
+    <p className="shisuan-heat" aria-label="逐字信息量">
+      {pieces.map((piece, index) => (
+        <span
+          key={index}
+          className={piece.inTop ? '' : 'is-estimated'}
+          style={{ '--heat': Math.min(1, piece.info / max) }}
+          title={`${piece.inTop ? '' : '≈ '}${fmt(piece.info)}${piece.inTop ? '' : '（没进司空的前 20 个候选，为估算值）'}`}
+        >
+          {piece.text}
+          <small>{piece.inTop ? '' : '≈'}{piece.info >= 10 ? piece.info.toFixed(0) : piece.info.toFixed(1)}</small>
+        </span>
+      ))}
+    </p>
+  )
 }
 
-function Frame() {
+function Result({ result }) {
+  // 刻度：过关线放在 60% 处，超出的部分压在右侧
+  const scaleMax = Math.max(result.threshold / 0.6, result.score * 1.08)
   return (
-    <div className="frame" aria-hidden="true">
-      <span className="frame__corner frame__corner--top-left" />
-      <span className="frame__corner frame__corner--top-right" />
-      <span className="frame__corner frame__corner--bottom-left" />
-      <span className="frame__corner frame__corner--bottom-right" />
+    <section className={`shisuan-result ${result.passed ? 'is-passed' : 'is-failed'}`} aria-live="polite">
+      <div className="shisuan-result__head">
+        <div className="shisuan-result__loss">
+          <small>解释的信息量</small>
+          <strong>{fmt(result.score)}</strong>
+          <span>每字 {fmt(result.perChar)} · 司空写出你这句话的概率约 1/{result.odds}{result.estimated ? '（含估算）' : ''}</span>
+        </div>
+        <div className="shisuan-result__seal" aria-label={result.passed ? '过关' : `印：${result.seal}`}>
+          {result.passed ? <span className="is-big">过</span> : Array.from(result.seal).map((char) => <span key={char}>{char}</span>)}
+        </div>
+      </div>
+
+      <div className="shisuan-meter" role="img" aria-label={`信息量 ${fmt(result.score)}，过关线 ${result.threshold}`}>
+        <i className="shisuan-meter__fill" style={{ '--w': `${Math.min(100, (result.score / scaleMax) * 100)}%` }} />
+        <i className="shisuan-meter__line" style={{ '--x': `${(result.threshold / scaleMax) * 100}%` }}><b>过关线 {result.threshold}</b></i>
+      </div>
+      <p className="shisuan-result__verdict">{result.passed ? '司空失算了。下一关已解锁。' : `还差 ${fmt(result.threshold - result.score)}，这句话司空还写得出来。`}</p>
+
+      <blockquote className="shisuan-result__comment">{result.comment}</blockquote>
+      {result.critique && <p className="shisuan-result__critique">司空点评 · {result.critique}</p>}
+
+      <details className="shisuan-predict" open>
+        <summary>逐字读：哪些字让司空意外</summary>
+        <Heat pieces={result.pieces} />
+        {result.estimated && <p className="shisuan-note">带「≈」的字没进司空的前 20 个候选，接口不给它的真实概率。它只能比第 20 名更低，这里按「第 20 名再低 1」估算，所以是估算值。</p>}
+      </details>
+    </section>
+  )
+}
+
+function LevelPicker({ progress, current, onPick }) {
+  const items = Array.from({ length: Math.min(LEVELS.length, progress.unlocked) }, (_, index) => index + 1).reverse()
+  return (
+    <div className="shisuan-levels" role="listbox" aria-label="已解锁的关卡">
+      {items.map((level) => (
+        <button
+          type="button"
+          role="option"
+          aria-selected={level === current}
+          key={level}
+          className={`${progress.passed[level] ? 'is-passed' : ''} ${level === current ? 'is-current' : ''}`}
+          onClick={() => onPick(level)}
+        >
+          <small>{level}</small>{LEVELS[level - 1]}
+        </button>
+      ))}
     </div>
   )
 }
 
-/* 反向训练曲线：训练模型时损失应当一路下降，这里你要让它一路上扬 */
-function LossCurve({ losses }) {
-  const width = 560
-  const height = 200
-  const pad = { left: 40, right: 22, top: 30, bottom: 30 }
-  const max = Math.max(5, ...losses) * 1.12
-  const x = (index) => pad.left + (index * (width - pad.left - pad.right)) / (TOTAL - 1)
-  const y = (value) => height - pad.bottom - (value / max) * (height - pad.top - pad.bottom)
-  const points = losses.map((value, index) => `${x(index)},${y(value)}`).join(' ')
-  const ticks = [0, max / 2, max].map((value) => Math.round(value))
-  return (
-    <figure className="shisuan-curve">
-      <div className="shisuan-curve__scroll">
-        <svg viewBox={`0 0 ${width} ${height}`} role="img" aria-label={`每轮损失：${losses.map(fmtLoss).join('、')}`}>
-          {ticks.map((tick) => (
-            <g key={tick}>
-              <line className="shisuan-curve__grid" x1={pad.left} x2={width - pad.right} y1={y(tick)} y2={y(tick)} />
-              <text className="shisuan-curve__tick" x={pad.left - 8} y={y(tick) + 4} textAnchor="end">{tick}</text>
-            </g>
-          ))}
-          {ORDINALS.map((label, index) => (
-            <text key={label} className="shisuan-curve__tick" x={x(index)} y={height - 8} textAnchor="middle">{label}</text>
-          ))}
-          <polyline className="shisuan-curve__line" points={points} pathLength="1" />
-          {losses.map((value, index) => (
-            <g key={index} className="shisuan-curve__dot" style={{ '--i': index }}>
-              <circle cx={x(index)} cy={y(value)} r="4" />
-              <text x={x(index)} y={y(value) - 10} textAnchor="middle">{fmtLoss(value)}</text>
-            </g>
-          ))}
-        </svg>
-      </div>
-      <figcaption>反向训练曲线 · 别人训练模型时盼着它往下走，你盼着它往上</figcaption>
-    </figure>
-  )
-}
-
-function Chain({ words, current }) {
-  return (
-    <ol className="shisuan-chain" aria-label="联想路径">
-      {words.map((word, index) => (
-        <li key={`${word}-${index}`} className={index === words.length - 1 && current ? 'is-current' : ''}>{word}</li>
-      ))}
-      {current && <li className="is-pending" aria-label="待落笔">？</li>}
-    </ol>
-  )
-}
-
-function RoundReveal({ round, finished, onNext }) {
-  const wordInList = round.predictions.some((item) => item.text === round.word)
-  const bars = wordInList ? round.predictions : [...round.predictions, { text: round.word, probability: round.probability, mine: true }]
-  const maxP = Math.max(...bars.map((item) => item.probability), 0.0001)
-  return (
-    <section className="shisuan-reveal" aria-live="polite">
-      <div className="shisuan-predict shisuan-predict--open">
-        <header>司空最先想到的</header>
-        <ul>
-          {bars.map((item) => {
-            const mine = item.mine || item.text === round.word
-            return (
-              <li key={item.text} className={mine ? 'is-mine' : ''}>
-                <span className="shisuan-predict__word">{item.text}</span>
-                <span className="shisuan-predict__bar"><i style={{ '--w': `${Math.max(0.6, (item.probability / maxP) * 100)}%` }} /></span>
-                <span className="shisuan-predict__p">{mine && !wordInList ? `约 1/${round.odds}` : fmtPercent(item.probability)}</span>
-              </li>
-            )
-          })}
-        </ul>
-        <p className="shisuan-pieces">
-          逐字读：
-          {round.pieces.map((piece, index) => (
-            <span key={index} className={piece.inTop ? '' : 'is-out'} title={piece.inTop ? '在司空的前 20 个候选里' : '连前 20 个候选都没进'}>
-              {piece.end ? '收笔' : piece.text}<small>{fmtLoss(piece.loss)}</small>
-            </span>
-          ))}
-        </p>
-      </div>
-
-      <div className="shisuan-score">
-        <div className="shisuan-score__num">
-          <small>本轮损失</small>
-          <strong>{fmtLoss(round.loss)}</strong>
-          <span>司空估计你说出 ⌜{round.word}⌟ 的概率约 1/{round.odds}</span>
-        </div>
-        <div className="shisuan-seal" key={round.index} aria-label={`印：${round.seal}`}>
-          {Array.from(round.seal).map((char) => <span key={char}>{char}</span>)}
-        </div>
-      </div>
-
-      <blockquote className="shisuan-comment">{round.comment}</blockquote>
-      {round.critique && <p className="shisuan-critique">何以相遇 · {round.critique}</p>}
-
-      <button type="button" className="shisuan-button shisuan-button--ink" onClick={onNext} autoFocus>
-        {finished ? '七枝已尽 · 结算' : '下一枝 →'}
-      </button>
-    </section>
-  )
-}
-
-function Board({ initialScope = 'today', highlightId }) {
-  const [scope, setScope] = useState(initialScope)
-  const [data, setData] = useState(null)
-  const [error, setError] = useState('')
-  useEffect(() => {
-    let cancelled = false
-    setData(null)
-    setError('')
-    getShisuanBoard(scope)
-      .then((value) => { if (!cancelled) setData(value) })
-      .catch((err) => { if (!cancelled) setError(err.message) })
-    return () => { cancelled = true }
-  }, [scope])
-  return (
-    <section className="shisuan-board">
-      <div className="shisuan-tabs" role="tablist">
-        <button type="button" role="tab" aria-selected={scope === 'today'} className={scope === 'today' ? 'is-active' : ''} onClick={() => setScope('today')}>今日榜</button>
-        <button type="button" role="tab" aria-selected={scope === 'all'} className={scope === 'all' ? 'is-active' : ''} onClick={() => setScope('all')}>总榜</button>
-      </div>
-      {data && scope === 'today' && <p className="shisuan-board__note">今日起点 ⌜{data.dailyWord}⌟ · {data.day}</p>}
-      {data && scope === 'all' && <p className="shisuan-board__note">历来每日起点的全部对局</p>}
-      {error && <p className="shisuan-error">{error}</p>}
-      {!data && !error && <p className="shisuan-board__note">司空正在翻榜……</p>}
-      {data && !data.entries.length && <p className="shisuan-board__empty">{scope === 'today' ? '今天还没有人让司空失算过' : '还没有人上榜'}</p>}
-      {data && data.entries.length > 0 && (
-        <ol className="shisuan-board__list">
-          {data.entries.map((entry) => (
-            <li key={entry.id} className={`${entry.rank <= 3 ? 'is-top' : ''} ${entry.id === highlightId ? 'is-me' : ''}`}>
-              <span className="shisuan-board__rank">{entry.rank}</span>
-              <span className="shisuan-board__name">{entry.nickname}</span>
-              <span className="shisuan-board__chain">{entry.chain.join(' → ')}</span>
-              <strong className="shisuan-board__total">{fmtLoss(entry.total)}</strong>
-            </li>
-          ))}
-        </ol>
-      )}
-    </section>
-  )
-}
-
-function ShiSuan({ onExit }) {
-  const [view, setView] = useState('intro') // intro | play | summary | board
+function ShiSuan({ onClose }) {
   const [info, setInfo] = useState(null)
-  const [game, setGame] = useState(null)
-  const [rounds, setRounds] = useState([])
-  const [prompt, setPrompt] = useState('')
-  const [total, setTotal] = useState(0)
+  const [progress, setProgress] = useState(loadProgress)
+  const [level, setLevel] = useState(() => loadProgress().unlocked)
   const [word, setWord] = useState('')
-  const [reason, setReason] = useState('')
+  const [explain, setExplain] = useState('')
   const [busy, setBusy] = useState(false)
-  const [rejection, setRejection] = useState(null)
   const [error, setError] = useState('')
-  const [reveal, setReveal] = useState(null) // { round, finished, summary }
-  const [summary, setSummary] = useState(null)
-  const [nickname, setNickname] = useState('')
-  const [boardResult, setBoardResult] = useState(null)
-  const [boardScope, setBoardScope] = useState('today')
-  const [previousView, setPreviousView] = useState('intro')
+  const [rejection, setRejection] = useState(null)
+  const [result, setResult] = useState(null)
+  const [picking, setPicking] = useState(false)
+  const [showRules, setShowRules] = useState(() => loadProgress().unlocked === 1 && !Object.keys(loadProgress().records).length)
   const wordRef = useRef(null)
+  const dialogRef = useRef(null)
+
+  const prompt = LEVELS[level - 1]
+  const line = threshold(level)
+  const records = progress.records[level] || []
+  const available = info?.available !== false
 
   useEffect(() => {
     let cancelled = false
@@ -193,54 +105,53 @@ function ShiSuan({ onExit }) {
   }, [])
 
   useEffect(() => {
-    if (view === 'play' && !reveal && !busy) wordRef.current?.focus()
-  }, [view, reveal, busy, prompt])
-
-  const begin = async (mode) => {
-    setError('')
-    setBusy(true)
-    try {
-      const value = await startShisuan(mode)
-      setGame(value)
-      setPrompt(value.prompt)
-      setRounds([])
-      setTotal(0)
-      setWord('')
-      setReason('')
-      setRejection(null)
-      setReveal(null)
-      setSummary(null)
-      setBoardResult(null)
-      setView('play')
-    } catch (err) {
-      setError(err.message)
-    } finally {
-      setBusy(false)
+    const onKey = (event) => { if (event.key === 'Escape' && !busy) onClose() }
+    window.addEventListener('keydown', onKey)
+    const { overflow } = document.body.style
+    document.body.style.overflow = 'hidden'
+    return () => {
+      window.removeEventListener('keydown', onKey)
+      document.body.style.overflow = overflow
     }
+  }, [busy, onClose])
+
+  useEffect(() => {
+    if (!result && !busy && !picking) wordRef.current?.focus()
+  }, [level, result, busy, picking])
+
+  const goTo = (next) => {
+    setLevel(next)
+    setWord('')
+    setExplain('')
+    setError('')
+    setRejection(null)
+    setResult(null)
+    setPicking(false)
+    dialogRef.current?.scrollTo?.({ top: 0 })
   }
 
   const submit = async (event) => {
     event.preventDefault()
     if (busy) return
     const w = word.trim()
-    const r = reason.trim()
-    if (!w) { setError('先写下你的联想'); return }
+    const e = explain.trim()
+    if (!w) { setError('先写下你的联想'); wordRef.current?.focus(); return }
     if (len(w) > MAX_WORD) { setError(`联想词最多${MAX_WORD}个字`); return }
-    if (len(r) < 4) { setError('再多说一点理由，至少4个字'); return }
-    if (len(r) > MAX_REASON) { setError(`理由最多${MAX_REASON}个字`); return }
+    if (w === prompt) { setError('不能原样照抄题目'); return }
+    if (len(e) < MIN_EXPLAIN) { setError(`解释至少写${MIN_EXPLAIN}个字`); return }
+    if (len(e) > MAX_EXPLAIN) { setError(`解释最多${MAX_EXPLAIN}个字`); return }
     setError('')
     setRejection(null)
+    setResult(null)
     setBusy(true)
     try {
-      const result = await playShisuanRound(game.gameId, w, r)
-      if (!result.accepted) {
-        setRejection({ message: result.message, critique: result.critique })
+      const value = await attemptShisuan(level, w, e)
+      if (!value.accepted) {
+        setRejection({ message: value.message, critique: value.critique })
         return
       }
-      setRounds((list) => [...list, result.round])
-      setTotal(result.total)
-      setReveal({ round: result.round, finished: result.finished, nextPrompt: result.nextPrompt })
-      if (result.finished) setSummary(result.summary)
+      setResult(value)
+      setProgress((current) => recordAttempt(current, value))
     } catch (err) {
       setError(err.message)
     } finally {
@@ -248,198 +159,120 @@ function ShiSuan({ onExit }) {
     }
   }
 
-  const next = () => {
-    if (!reveal) return
-    if (reveal.finished) {
-      setReveal(null)
-      setView('summary')
-      return
-    }
-    setPrompt(reveal.nextPrompt)
-    setWord('')
-    setReason('')
-    setReveal(null)
-  }
-
-  const skip = async () => {
-    if (busy) return
-    setError('')
-    setRejection(null)
-    setBusy(true)
-    try {
-      const result = await skipShisuan(game.gameId)
-      setTotal(result.total)
-      setSummary(result.summary)
-      setReveal(null)
-      setView('summary')
-    } catch (err) {
-      setError(err.message)
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  const submitBoard = async (event) => {
-    event.preventDefault()
-    if (busy) return
-    const name = nickname.trim()
-    if (!name) { setError('留个名字再上榜'); return }
-    setError('')
-    setBusy(true)
-    try {
-      setBoardResult(await submitShisuanBoard(game.gameId, name))
-    } catch (err) {
-      setError(err.message)
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  const openBoard = (scope = 'today') => {
-    setBoardScope(scope)
-    if (view !== 'board') setPreviousView(view)
-    setError('')
-    setView('board')
-  }
-
-  const chainWords = game ? [game.start, ...rounds.map((item) => item.word)] : []
-  const roundIndex = rounds.length + (reveal ? 0 : 1)
-  const available = info?.available !== false
+  // 再试一次时保留上一句，方便在原句上改
+  const retry = () => setResult(null)
 
   return (
-    <div className={`shisuan shisuan--${view}`}>
-      <Frame />
-      <header className="shisuan-top">
-        <button type="button" className="shisuan-link" onClick={onExit}>← 司空</button>
-        <span className="shisuan-top__title">⌜失算⌟</span>
-        {view === 'board'
-          ? <button type="button" className="shisuan-link" onClick={() => setView(previousView)}>返回</button>
-          : <button type="button" className="shisuan-link" onClick={() => openBoard('today')}>损失榜</button>}
-      </header>
+    <div className="shisuan-layer">
+      <button className="shisuan-backdrop" type="button" aria-label="关闭失算" onClick={() => !busy && onClose()} />
+      <section ref={dialogRef} className="shisuan-dialog" role="dialog" aria-modal="true" aria-label="失算">
+        <header className="shisuan-head">
+          <span className="shisuan-head__mark" aria-hidden="true"><b>失</b><b>算</b></span>
+          <div className="shisuan-head__title">
+            <strong>让司空猜不中你</strong>
+            <button type="button" className="shisuan-text-button" onClick={() => setShowRules((value) => !value)} aria-expanded={showRules}>
+              {showRules ? '收起玩法' : '怎么玩'}
+            </button>
+          </div>
+          <button type="button" className="shisuan-close" onClick={onClose} disabled={busy} aria-label="关闭">×</button>
+        </header>
 
-      <main className="shisuan-main">
-        {view === 'intro' && (
-          <section className="shisuan-intro">
-            <div className="shisuan-intro__mark" aria-hidden="true">
-              <span>失</span><span>算</span>
-            </div>
-            <h1>让司空猜不中你</h1>
-            <ol className="shisuan-rules">
-              <li><b>一</b><span>司空给你一个词，你写下联想到的词，再说说为什么。</span></li>
-              <li><b>二</b><span>司空逐字估算它自己说出这个词的概率。它越想不到，<em>损失</em>越高。</span></li>
-              <li><b>三</b><span>你的词会成为下一枝的题目。七枝之后，损失总和越高越好。</span></li>
-              <li><b>四</b><span>理由说不通，这一笔不算。意外可以，胡来不行。</span></li>
-            </ol>
-            <p className="shisuan-intro__note">损失即交叉熵：−ln(司空认为你会这样说的概率)。数字来自 DeepSeek 的真实输出，不是它自己估的。</p>
-            {!available && <p className="shisuan-error">失算需要司空的大脑：请先在「留印 → 设置」中配置 DeepSeek API Key。</p>}
-            <div className="shisuan-starts">
-              <button type="button" className="shisuan-start" disabled={!available || busy || !info} onClick={() => begin('daily')}>
-                <small>今日起点 · 计入损失榜</small>
-                <strong>⌜{info?.dailyWord || '……'}⌟</strong>
-              </button>
-              <button type="button" className="shisuan-start shisuan-start--ghost" disabled={!available || busy || !info} onClick={() => begin('random')}>
-                <small>随机起点 · 不计榜</small>
-                <strong>⌜？⌟</strong>
-              </button>
-            </div>
-            {error && <p className="shisuan-error">{error}</p>}
-          </section>
+        {showRules && (
+          <ol className="shisuan-rules">
+            <li>由题目写一个联想词，再用一句话（{MIN_EXPLAIN} 到 {MAX_EXPLAIN} 字）解释你是怎么想到的。</li>
+            <li>司空会先看这句话是否通顺、有意义、说得通。乱写、堆砌词语、空话，这一笔不算。</li>
+            <li>说得通，就算这句解释的<em>信息量</em>：司空已知题目和联想词，逐字猜你会怎么写，每个字的 −ln(概率) 加起来就是总分。越出乎它意料，分越高。</li>
+            <li>信息量达到<em>过关线</em>即通关，解锁下一个词。过关线会越来越高。</li>
+          </ol>
         )}
 
-        {view === 'play' && game && (
-          <section className="shisuan-play">
-            <div className="shisuan-status">
-              <span>第 {ORDINALS[Math.min(roundIndex, TOTAL) - 1]} 枝 <small>/ 七</small></span>
-              <ol className="shisuan-ticks" aria-hidden="true">
-                {ORDINALS.map((label, index) => <li key={label} className={index < roundIndex - 1 ? 'is-done' : index === roundIndex - 1 ? 'is-now' : ''} />)}
-              </ol>
-              <span>累计损失 <strong>{fmtLoss(total)}</strong></span>
-            </div>
-            <Chain words={chainWords} current={!reveal} />
+        <nav className="shisuan-nav">
+          <button type="button" className="shisuan-text-button" disabled={level <= 1 || busy} onClick={() => goTo(level - 1)}>‹ 上一关</button>
+          <button type="button" className="shisuan-nav__level" onClick={() => setPicking((value) => !value)} disabled={busy} aria-expanded={picking}>
+            第 {level} 关 <small>/ {LEVELS.length}</small> {progress.passed[level] && <i>已过</i>} <span aria-hidden="true">⌄</span>
+          </button>
+          <button type="button" className="shisuan-text-button" disabled={level >= progress.unlocked || busy} onClick={() => goTo(level + 1)}>下一关 ›</button>
+        </nav>
 
-            {!reveal && (
+        {picking && <LevelPicker progress={progress} current={level} onPick={goTo} />}
+
+        {!picking && (
+          <>
+            <div className="shisuan-prompt">
+              <span key={level}>⌜{prompt}⌟</span>
+              <small>过关线 · 信息量 ≥ {line}</small>
+            </div>
+
+            {!available && <p className="shisuan-error">失算需要司空的大脑：请先在「留印 → 设置」中配置 DeepSeek API Key。</p>}
+
+            {result ? (
+              <>
+                <Result result={result} />
+                <div className="shisuan-actions">
+                  <button type="button" className="shisuan-button" onClick={retry}>改一改再试</button>
+                  {result.passed && level < LEVELS.length && (
+                    <button type="button" className="shisuan-button shisuan-button--ink" onClick={() => goTo(level + 1)} autoFocus>下一关 →</button>
+                  )}
+                </div>
+              </>
+            ) : (
               <form className="shisuan-form" onSubmit={submit}>
-                <p className="shisuan-prompt"><span>⌜{prompt}⌟</span><small>你会想到……</small></p>
                 <label className="shisuan-field">
                   <span>联想</span>
-                  <input ref={wordRef} value={word} onChange={(e) => { setWord(e.target.value); setError('') }} placeholder="一个司空想不到的词" disabled={busy} autoComplete="off" />
+                  <input ref={wordRef} value={word} onChange={(event) => { setWord(event.target.value); setError('') }} placeholder="由题目想到的一个词" disabled={busy || !available} autoComplete="off" />
                   <i className={len(word) > MAX_WORD ? 'is-over' : ''}>{len(word)} / {MAX_WORD}</i>
                 </label>
-                <label className="shisuan-field shisuan-field--reason">
-                  <span>何以相遇</span>
-                  <textarea value={reason} onChange={(e) => { setReason(e.target.value); setError('') }} placeholder={`为什么从 ⌜${prompt}⌟ 会想到它？说得通才算数`} rows={2} disabled={busy} />
-                  <i className={len(reason) > MAX_REASON ? 'is-over' : ''}>{len(reason)} / {MAX_REASON}</i>
+                <label className="shisuan-field">
+                  <span>解释</span>
+                  <textarea
+                    value={explain}
+                    onChange={(event) => { setExplain(event.target.value); setError('') }}
+                    placeholder={`一句话说清楚：从 ⌜${prompt}⌟ 怎么想到它的？越出人意料，信息量越高`}
+                    rows={2}
+                    disabled={busy || !available}
+                  />
+                  <i className={len(explain) > MAX_EXPLAIN || (explain && len(explain) < MIN_EXPLAIN) ? 'is-over' : ''}>{len(explain)} / {MAX_EXPLAIN}</i>
                 </label>
-                <button type="submit" className="shisuan-button shisuan-button--ink" disabled={busy}>{busy ? '司空正在逐字读……' : '落笔'}</button>
-                {!busy && (
-                  <button type="button" className="shisuan-skip" onClick={skip}>
-                    去，哪来那么多规矩呀<small>跳过剩下的{ORDINALS[TOTAL - rounds.length - 1]}枝 · 不计损失 · 没有评语</small>
-                  </button>
-                )}
-
+                <button type="submit" className="shisuan-button shisuan-button--ink shisuan-submit" disabled={busy || !available}>
+                  {busy ? '司空正在逐字读……' : '落笔'}
+                </button>
                 {busy && (
-                  <div className="shisuan-reading" aria-live="polite">
-                    {Array.from(word.trim()).map((char, index) => <span key={index} style={{ '--i': index }}>{char}</span>)}
+                  <div className="shisuan-reading" aria-hidden="true">
+                    {Array.from(explain.trim()).slice(0, 12).map((char, index) => <span key={index} style={{ '--i': index }}>{char}</span>)}
                   </div>
                 )}
                 {rejection && (
                   <div className="shisuan-reject" role="alert">
                     <strong>{rejection.message}</strong>
                     {rejection.critique && <p>{rejection.critique}</p>}
-                    <small>这一笔不算，换个词或换个理由，再落一次笔。</small>
+                    <small>这一笔不算，改一改解释，再落一次笔。</small>
                   </div>
                 )}
                 {error && <p className="shisuan-error">{error}</p>}
-
-                {!busy && (
-                  <div className="shisuan-predict shisuan-predict--covered" aria-hidden="true">
-                    <span>司空的猜测</span>
-                    <small>落笔后揭晓</small>
-                  </div>
-                )}
               </form>
             )}
 
-            {reveal && <RoundReveal round={reveal.round} finished={reveal.finished} onNext={next} />}
-          </section>
+            <section className="shisuan-records">
+              <header>
+                <span>本关记录</span>
+                <small>{records.length ? `${records.length} 次 · 按信息量排序` : '还没有计分的尝试'}</small>
+              </header>
+              {records.length > 0 && (
+                <ol>
+                  {records.map((item, index) => (
+                    <li key={`${item.word}-${item.at}`} className={item.passed ? 'is-passed' : ''}>
+                      <span className="shisuan-records__rank">{index + 1}</span>
+                      <span className="shisuan-records__word">{item.word}</span>
+                      <span className="shisuan-records__bar"><i style={{ '--w': `${Math.min(100, (item.score / Math.max(records[0].score, line)) * 100)}%` }} /></span>
+                      <strong>{fmt(item.score)}</strong>
+                    </li>
+                  ))}
+                </ol>
+              )}
+            </section>
+          </>
         )}
-
-        {view === 'summary' && summary && (
-          <section className="shisuan-summary">
-            <p className="shisuan-summary__label">{summary.skipped ? `跳过了${ORDINALS[summary.skipped - 1]}枝 · 总损失` : '七枝已尽 · 总损失'}</p>
-            <strong className="shisuan-summary__total">{fmtLoss(summary.total)}</strong>
-            {summary.title && <div className="shisuan-title-seal"><span>{summary.title}</span></div>}
-            {summary.sentence && <p className="shisuan-summary__sentence">{summary.sentence}</p>}
-            <Chain words={summary.chain} current={false} />
-            {summary.losses.length > 0 && <LossCurve losses={summary.losses} />}
-
-            {summary.rankable ? (
-              boardResult ? (
-                <div className="shisuan-ranked">
-                  <p>已上榜 · 今日第 <strong>{boardResult.todayRank}</strong> 名 · 总榜第 <strong>{boardResult.allRank}</strong> 名</p>
-                  <button type="button" className="shisuan-link" onClick={() => openBoard('today')}>看看损失榜 →</button>
-                </div>
-              ) : (
-                <form className="shisuan-nick" onSubmit={submitBoard}>
-                  <input value={nickname} onChange={(e) => { setNickname(e.target.value); setError('') }} placeholder="留个名字，挂上损失榜" maxLength={MAX_NICKNAME * 2} disabled={busy} />
-                  <button type="submit" className="shisuan-button shisuan-button--ink" disabled={busy}>{busy ? '……' : '上榜'}</button>
-                </form>
-              )
-            ) : (
-              <p className="shisuan-board__note">{game?.mode === 'daily' ? '一枝都没走，损失榜上没处挂。' : '随机起点不计入损失榜。想上榜，试试今日起点。'}</p>
-            )}
-            {error && <p className="shisuan-error">{error}</p>}
-
-            <div className="shisuan-actions">
-              <button type="button" className="shisuan-button" onClick={() => begin('daily')} disabled={busy}>今日起点再来</button>
-              <button type="button" className="shisuan-button" onClick={() => begin('random')} disabled={busy}>随机起点</button>
-              <button type="button" className="shisuan-button" onClick={onExit}>回到司空</button>
-            </div>
-          </section>
-        )}
-
-        {view === 'board' && <Board initialScope={boardScope} highlightId={boardResult?.entry?.id} />}
-      </main>
+      </section>
     </div>
   )
 }

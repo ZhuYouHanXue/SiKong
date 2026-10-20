@@ -281,11 +281,35 @@ export async function playRound({ gameId, word: rawWord, reason: rawReason, ip, 
       finished: game.finished,
       nextPrompt: game.finished ? null : game.prompt,
       roundIndex: game.rounds.length + 1,
-      summary: game.finished ? { ...game.summary, total: game.total, chain: [game.start, ...game.rounds.map(item => item.word)], losses: game.rounds.map(item => item.loss), rankable: game.mode === 'daily' } : null,
+      summary: game.finished ? summaryOf(game) : null,
     }
   } finally {
     game.busy = false
   }
+}
+
+function summaryOf(game) {
+  return {
+    ...game.summary,
+    total: game.total,
+    chain: [game.start, ...game.rounds.map(item => item.word)],
+    losses: game.rounds.map(item => item.loss),
+    skipped: game.skipped || 0,
+    // 一枝都没走的对局没什么可挂的
+    rankable: game.mode === 'daily' && game.rounds.length > 0,
+  }
+}
+
+/** 「去，哪来那么多规矩呀」：剩下的枝直接跳过，损失记 0，也不给任何评语和称号。 */
+export function skipGame({ gameId }) {
+  const game = getGame(gameId)
+  if (game.finished) throw httpError(409, '七枝已尽，这局已经结束了', 'GAME_FINISHED')
+  if (game.busy) throw httpError(409, '司空还在读上一笔', 'GAME_BUSY')
+  game.skipped = TOTAL_ROUNDS - game.rounds.length
+  game.finished = true
+  game.summary = { title: null, sentence: null }
+  game.updatedAt = Date.now()
+  return { finished: true, total: game.total, summary: summaryOf(game) }
 }
 
 /* ------------------------------ 损失榜 ------------------------------ */
@@ -326,6 +350,7 @@ export async function submitToBoard({ gameId, nickname: rawNickname, ip, signal 
   const game = getGame(gameId)
   if (!game.finished) throw httpError(409, '七枝还没走完', 'GAME_NOT_FINISHED')
   if (game.mode !== 'daily') throw httpError(400, '随机起点的对局不进损失榜', 'NOT_RANKABLE')
+  if (!game.rounds.length) throw httpError(400, '一枝都没走，榜上没处挂', 'NOT_RANKABLE')
   if (game.submitted) throw httpError(409, '这局已经上过榜了', 'ALREADY_SUBMITTED')
   const nickname = clean(rawNickname)
   if (!nickname) throw httpError(400, '留个名字再上榜', 'EMPTY_NICKNAME')

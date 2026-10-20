@@ -3,6 +3,7 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { createInterface } from 'node:readline'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { runShisuan } from './shisuan-cli.mjs'
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const envFile = path.join(rootDir, 'server', '.env')
@@ -172,14 +173,41 @@ async function main() {
   log('按 Ctrl+C 停止。')
 
   const quote = (value) => `"${String(value)}"`
+  // 服务输出经由这里转发：玩「失算」时暂时静音，免得模型调用日志刷进游戏画面
   const child = spawn([quote(process.execPath), quote(devScript)].join(' '), {
     cwd: rootDir,
-    stdio: 'inherit',
+    stdio: ['ignore', 'pipe', 'pipe'],
     shell: true,
+    env: { ...process.env, FORCE_COLOR: process.env.FORCE_COLOR || '1' },
   })
+  let muted = false
+  child.stdout.on('data', (chunk) => { if (!muted) process.stdout.write(chunk) })
+  child.stderr.on('data', (chunk) => { if (!muted) process.stderr.write(chunk) })
   const forward = () => killTree(child)
   process.on('SIGINT', () => forward('SIGINT'))
   process.on('SIGTERM', () => forward('SIGTERM'))
+
+  const shisuanHint = () => log('[91m输入 s 回车，就在这个终端里玩小游戏「失算」[0m')
+  const rl = createInterface({ input: process.stdin, output: process.stdout })
+  const ask = (question) => new Promise((resolve) => rl.question(question, resolve))
+  rl.on('SIGINT', forward)
+  let playing = false
+  rl.on('line', async (line) => {
+    if (playing || line.trim().toLowerCase() !== 's') return
+    playing = true
+    muted = true
+    try {
+      await runShisuan({ ask })
+    } catch (error) {
+      log(`「失算」出错了：${error?.message || error}`)
+    } finally {
+      muted = false
+      playing = false
+      log('')
+      log('已回到司空的服务日志。按 Ctrl+C 停止。')
+      shisuanHint()
+    }
+  })
   child.on('exit', (code, signal) => {
     if (signal) process.exit(1)
     process.exit(code ?? 0)
@@ -190,6 +218,8 @@ async function main() {
     log('\x1b[92m前端→：http://localhost:5173\x1b[0m')
     log('服务端：http://127.0.0.1:8787')
     log('API检查通过 模型：deepseek（可用）')
+    log('')
+    shisuanHint()
   }, 1600).unref()
 }
 

@@ -21,5 +21,6 @@ async function request(path, body) {
 export const getShisuanInfo = () => request('/info')
 export const startShisuan = (mode) => request('/games', { mode })
 export const playShisuanRound = (gameId, word, reason) => request(`/games/${encodeURIComponent(gameId)}/rounds`, { word, reason })
+export const skipShisuan = (gameId) => request(`/games/${encodeURIComponent(gameId)}/skip`, {})
 export const submitShisuanBoard = (gameId, nickname) => request(`/games/${encodeURIComponent(gameId)}/board`, { nickname })
 export const getShisuanBoard = (scope) => request(`/leaderboard?scope=${scope === 'all' ? 'all' : 'today'}`)

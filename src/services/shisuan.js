@@ -4,8 +4,8 @@ const configuredApiBaseUrl = import.meta.env.VITE_SIKONG_API_BASE_URL
 const apiBaseUrl = (configuredApiBaseUrl === undefined ? '/api' : configuredApiBaseUrl).replace(/\/$/, '')
 
 export const LEVELS = levels
-// 与服务端 server/lib/shisuan.mjs 保持一致：从 85 起步，每 20 关 +1，封顶 110
-export const threshold = (level) => Math.min(110, 85 + Math.floor((level - 1) / 20))
+// 与服务端 server/lib/shisuan.mjs 保持一致：前 5 关 60 / 65 / 70 / 75 / 80，之后 85 起步，每 20 关 +1，封顶 110
+export const threshold = (level) => (level <= 5 ? 55 + 5 * level : Math.min(110, 85 + Math.floor((level - 1) / 20)))
 export const MAX_WORD = 6
 export const MIN_EXPLAIN = 10
 export const MAX_EXPLAIN = 30

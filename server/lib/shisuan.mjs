@@ -22,9 +22,10 @@ export const MAX_WORD = 6
 export const MIN_EXPLAIN = 10
 export const MAX_EXPLAIN = 30
 
-// 过关线（nat）：从 85 起步，每 20 关 +1，第 501 关起封顶 110。
+// 过关线（nat）：前 5 关是新手关，依次为 60 / 65 / 70 / 75 / 80；
+// 第 6 关起为 85，每 20 关 +1，第 501 关起封顶 110。
 // 实测：平淡的解释每字约 2.8，写满 30 字约 84；具体、有想象力的解释每字 3.3 以上。
-export const threshold = level => Math.min(110, 85 + Math.floor((level - 1) / 20))
+export const threshold = level => (level <= 5 ? 55 + 5 * level : Math.min(110, 85 + Math.floor((level - 1) / 20)))
 
 // 不在前 20 名里的 token：比第 20 名再低 1 nat（约再小 2.7 倍）。前 20 名之外的真实概率接口不提供，这是保守估计。
 const FLOOR_MARGIN = 1

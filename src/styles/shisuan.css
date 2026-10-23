@@ -1,491 +1,1637 @@
-/* 失算：主页弹出的小游戏。沿用设置弹窗的纸白、细线、四角框与朱印。 */
+/* 循一 · 开放对弈界面样式（全站一致：纸白墨染、空灵疏朗、何以相遇式书脊） */
 
-/* ---------- 主页入口 ---------- */
+/* ---------- 首页入口按钮 ---------- */
 
 .shisuan-entry {
   display: inline-flex;
   align-items: baseline;
   gap: 8px;
-  margin-top: 18px;
-  padding: 4px 2px;
+  margin-top: 22px;
+  padding: 6px 4px;
   border: 0;
   border-bottom: 1px solid transparent;
   background: transparent;
   color: var(--ink);
   font-size: 14px;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.14em;
   cursor: pointer;
-  transition: color 180ms ease, border-color 180ms ease;
+  transition: color 200ms ease, border-color 200ms ease, transform 200ms ease;
 }
 
-.shisuan-entry i { color: var(--seal); font-style: normal; }
-.shisuan-entry small { color: #888; font-size: 12px; }
+.shisuan-entry i {
+  color: var(--seal);
+  font-style: normal;
+  font-weight: 500;
+}
+
+.shisuan-entry small {
+  color: #888;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+}
 
 .shisuan-entry:hover,
 .shisuan-entry:focus-visible {
   outline: 0;
   color: var(--seal);
   border-bottom-color: var(--seal);
+  transform: translateY(-1px);
 }
 
-/* ---------- 弹窗 ---------- */
+/* ---------- 开放布局宿主与画卷外壳 ---------- */
 
-.shisuan-layer {
-  position: fixed;
-  inset: 0;
-  z-index: 100010;
-  display: grid;
-  place-items: center;
-  padding: 16px;
+.hero--xunyi {
+  padding-top: 28px;
+  padding-bottom: 72px;
+  align-items: start;
 }
 
-.shisuan-backdrop {
-  position: fixed;
-  inset: 0;
-  border: 0;
-  background: rgba(0, 0, 0, 0.42);
-  cursor: pointer;
-}
-
-.shisuan-dialog {
+.xunyi-open-view {
   position: relative;
-  width: min(560px, 100%);
-  max-height: calc(100vh - 32px);
-  max-height: calc(100dvh - 32px);
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  padding: 22px 26px 26px;
-  border: var(--hairline);
-  background: var(--paper);
+  width: min(840px, 94vw);
+  margin: 0 auto;
   color: var(--ink);
   text-align: left;
-  animation: shisuan-arrive 220ms ease both;
+  animation: xunyi-page-enter 360ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
-.shisuan-head {
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  align-items: center;
-  gap: 14px;
-}
+/* ---------- 顶部一体化标头栏 ---------- */
 
-.shisuan-head__mark {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  place-items: center;
-  width: 44px;
-  height: 44px;
-  border: 2px solid var(--seal);
-  color: var(--seal);
-  font-size: 18px;
-  line-height: 1;
-  transform: rotate(-6deg);
-}
-
-.shisuan-head__mark b { font-weight: 400; }
-
-.shisuan-head__title { display: grid; gap: 2px; justify-items: start; }
-.shisuan-head__title strong { font-size: 18px; font-weight: 400; letter-spacing: 0.2em; }
-
-.shisuan-close {
-  width: 34px;
-  height: 34px;
-  border: 0;
-  background: transparent;
-  font-size: 24px;
-  line-height: 1;
-  cursor: pointer;
-}
-
-.shisuan-close:hover:not(:disabled),
-.shisuan-close:focus-visible { outline: 0; color: var(--seal); }
-
-.shisuan-text-button {
-  padding: 2px 0;
-  border: 0;
-  border-bottom: 1px solid transparent;
-  background: transparent;
-  color: #777;
-  font-size: 12px;
-  letter-spacing: 0.1em;
-  cursor: pointer;
-}
-
-.shisuan-text-button:hover:not(:disabled),
-.shisuan-text-button:focus-visible { outline: 0; color: var(--seal); border-bottom-color: var(--seal); }
-.shisuan-text-button:disabled { color: #ccc; cursor: default; }
-
-.shisuan-rules {
-  display: grid;
-  gap: 6px;
-  margin: 16px 0 0;
-  padding: 12px 14px 12px 32px;
-  border: 1px dashed #d5d5d5;
-  font-size: 13px;
-  line-height: 1.7;
-}
-
-.shisuan-rules li::marker { color: var(--seal); }
-.shisuan-rules em { font-style: normal; border-bottom: 1px solid var(--seal); }
-
-.shisuan-nav {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  margin-top: 18px;
-  padding-bottom: 10px;
-  border-bottom: var(--hairline);
-}
-
-.shisuan-nav__level {
-  padding: 4px 8px;
-  border: 0;
-  background: transparent;
-  font-size: 14px;
-  letter-spacing: 0.14em;
-  cursor: pointer;
-}
-
-.shisuan-nav__level small { color: #9a9a9a; font-size: 12px; letter-spacing: 0; }
-.shisuan-nav__level i { margin-left: 4px; color: var(--seal); font-size: 12px; font-style: normal; }
-.shisuan-nav__level span { color: var(--seal); }
-.shisuan-nav__level:hover:not(:disabled),
-.shisuan-nav__level:focus-visible { outline: 0; color: var(--seal); }
-
-.shisuan-levels {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
-  gap: 8px;
-  max-height: 340px;
-  margin-top: 14px;
-  overflow-y: auto;
-}
-
-.shisuan-levels button {
-  display: grid;
-  gap: 2px;
-  padding: 10px 8px;
-  border: 1px solid #d8d8d8;
-  background: var(--paper);
-  font-size: 15px;
-  text-align: left;
-  cursor: pointer;
-}
-
-.shisuan-levels small { color: #9a9a9a; font-size: 11px; }
-.shisuan-levels button.is-passed { border-color: var(--ink); }
-.shisuan-levels button.is-passed small::after { content: " · 已过"; color: var(--seal); }
-.shisuan-levels button.is-current { border-color: var(--seal); color: var(--seal); }
-.shisuan-levels button:hover,
-.shisuan-levels button:focus-visible { outline: 0; border-color: var(--seal); }
-
-.shisuan-prompt {
-  display: grid;
-  gap: 6px;
-  margin: 24px 0 20px;
-  text-align: center;
-}
-
-.shisuan-prompt span {
-  font-size: clamp(32px, 9vw, 46px);
-  letter-spacing: 0.1em;
-  animation: shisuan-rise 320ms ease both;
-}
-
-.shisuan-prompt small { color: #777; font-size: 12px; letter-spacing: 0.24em; }
-
-/* ---------- 输入 ---------- */
-
-.shisuan-field {
-  position: relative;
-  display: grid;
-  grid-template-columns: 76px 1fr;
-  border: var(--hairline);
-  border-bottom: 0;
-}
-
-.shisuan-field > span {
-  display: grid;
-  place-items: center;
-  border-right: var(--hairline);
-  font-size: 12px;
-  letter-spacing: 0.12em;
-}
-
-.shisuan-field input,
-.shisuan-field textarea {
-  width: 100%;
-  min-height: 48px;
-  padding: 12px 58px 12px 14px;
-  border: 0;
-  background: transparent;
-  font-size: 17px;
-  resize: none;
-}
-
-.shisuan-field textarea { font-size: 14px; line-height: 1.6; }
-.shisuan-field input:focus,
-.shisuan-field textarea:focus { outline: 0; background: #fafafa; }
-
-.shisuan-field > i {
-  position: absolute;
-  right: 10px;
-  bottom: 6px;
-  color: #9a9a9a;
-  font-size: 11px;
-  font-style: normal;
-}
-
-.shisuan-field > i.is-over { color: var(--seal); }
-
-.shisuan-button {
-  min-height: 44px;
-  padding: 0 16px;
-  border: var(--hairline);
-  background: var(--paper);
-  font-size: 14px;
-  letter-spacing: 0.16em;
-  cursor: pointer;
-  transition: color 180ms ease, background 180ms ease;
-}
-
-.shisuan-button:hover:not(:disabled),
-.shisuan-button:focus-visible { outline: 0; color: var(--paper); background: var(--ink); }
-.shisuan-button--ink { color: var(--paper); background: var(--ink); }
-.shisuan-button--ink:hover:not(:disabled),
-.shisuan-button--ink:focus-visible { background: var(--seal); }
-.shisuan-button:disabled { opacity: 0.55; cursor: not-allowed; }
-
-.shisuan-submit {
-  display: block;
-  width: 100%;
-  min-height: 52px;
-  font-size: 15px;
-  letter-spacing: 0.5em;
-}
-
-.shisuan-reading {
-  display: flex;
-  justify-content: center;
-  gap: 10px;
-  margin-top: 18px;
-  font-size: 26px;
-}
-
-.shisuan-reading span {
-  animation: shisuan-read 1.4s ease-in-out infinite;
-  animation-delay: calc(var(--i) * 180ms);
-}
-
-.shisuan-reject {
-  margin-top: 14px;
-  padding: 12px 14px;
-  border: var(--hairline-seal);
-  color: var(--seal);
-  animation: shisuan-shake 360ms ease both;
-}
-
-.shisuan-reject strong { font-size: 15px; font-weight: 400; letter-spacing: 0.08em; }
-.shisuan-reject p { margin: 6px 0 4px; color: var(--ink); font-size: 13px; line-height: 1.7; }
-.shisuan-reject small { color: #888; font-size: 12px; }
-
-.shisuan-error {
-  margin: 12px 0 0;
-  color: var(--seal);
-  font-size: 13px;
-  line-height: 1.6;
-}
-
-/* ---------- 结果 ---------- */
-
-.shisuan-result { animation: shisuan-rise 280ms ease both; }
-
-.shisuan-result__head {
+.xunyi-topbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-}
-
-.shisuan-result__loss { display: grid; gap: 2px; }
-.shisuan-result__loss small { color: #777; font-size: 12px; letter-spacing: 0.24em; }
-.shisuan-result__loss strong { font-size: clamp(42px, 12vw, 60px); font-weight: 400; line-height: 1.05; }
-.shisuan-result__loss span { color: #555; font-size: 12px; }
-
-.shisuan-result__seal {
-  display: grid;
-  place-items: center;
-  flex: none;
-  width: 64px;
-  height: 64px;
-  border: 2px solid var(--seal);
-  color: var(--seal);
-  font-size: 21px;
-  line-height: 1;
-  transform: rotate(-11deg);
-  animation: shisuan-stamp 300ms 260ms cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
-}
-
-.shisuan-result__seal .is-big { font-size: 38px; }
-.shisuan-result.is-failed .shisuan-result__seal { border-color: #9a9a9a; color: #9a9a9a; }
-
-.shisuan-meter {
-  position: relative;
-  height: 8px;
-  margin: 26px 0 0;
-  background: #ececec;
-}
-
-.shisuan-meter__fill {
-  position: absolute;
-  inset: 0 auto 0 0;
-  width: var(--w);
-  background: var(--ink);
-  transform-origin: left;
-  animation: shisuan-bar 600ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
-}
-
-.shisuan-result.is-passed .shisuan-meter__fill { background: var(--seal); }
-
-.shisuan-meter__line {
-  position: absolute;
-  top: -6px;
-  bottom: -6px;
-  left: var(--x);
-  width: 1px;
-  background: var(--ink);
-}
-
-.shisuan-meter__line b {
-  position: absolute;
-  bottom: calc(100% + 2px);
-  left: 50%;
-  color: #555;
-  font-size: 11px;
-  font-weight: 400;
-  white-space: nowrap;
-  transform: translateX(-50%);
-}
-
-.shisuan-result__verdict { margin: 10px 0 0; color: #555; font-size: 13px; }
-.shisuan-result.is-passed .shisuan-result__verdict { color: var(--seal); }
-
-.shisuan-result__comment {
-  margin: 18px 0 0;
-  padding-left: 14px;
-  border-left: 2px solid var(--seal);
-  font-size: 17px;
-  line-height: 1.7;
-  animation: shisuan-rise 360ms 380ms ease both;
-}
-
-.shisuan-result__critique { margin: 10px 0 0; color: #777; font-size: 12px; line-height: 1.7; }
-
-.shisuan-predict { margin-top: 16px; border-top: 1px dashed #d5d5d5; }
-
-.shisuan-predict summary {
-  padding: 10px 0 4px;
-  color: #777;
-  font-size: 12px;
-  letter-spacing: 0.16em;
-  cursor: pointer;
-}
-
-.shisuan-heat {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px 2px;
-  margin: 10px 0 0;
-  line-height: 1;
-}
-
-.shisuan-heat span {
-  display: inline-grid;
-  justify-items: center;
-  gap: 4px;
-  padding: 6px 3px 4px;
-  font-size: 17px;
-  color: var(--ink);
-  background: color-mix(in srgb, var(--seal) calc(var(--heat) * 34%), transparent);
-}
-
-.shisuan-heat small { color: #777; font-size: 10px; font-variant-numeric: tabular-nums; }
-.shisuan-heat span.is-estimated { box-shadow: inset 0 -2px 0 var(--seal); }
-.shisuan-heat span.is-estimated small { color: var(--seal); }
-
-.shisuan-note { margin: 10px 0 0; color: #888; font-size: 11px; line-height: 1.6; }
-
-.shisuan-actions {
-  display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: 1fr;
-  gap: 10px;
-  margin-top: 20px;
-}
-
-/* ---------- 本关记录 ---------- */
-
-.shisuan-records { margin-top: 26px; }
-
-.shisuan-records header {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  padding-bottom: 8px;
+  padding-bottom: 16px;
   border-bottom: var(--hairline);
-  font-size: 13px;
-  letter-spacing: 0.16em;
+  user-select: none;
 }
 
-.shisuan-records header small { color: #9a9a9a; font-size: 11px; letter-spacing: 0.06em; }
-
-.shisuan-records ol { max-height: 220px; margin: 0; padding: 0; overflow-y: auto; list-style: none; }
-
-.shisuan-records li {
-  display: grid;
-  grid-template-columns: 24px minmax(0, 7em) 1fr auto;
+/* 循一 Logo：无框意境设计（错落平行细线背景，墨「循」，朱红「一」同融其中） */
+.xunyi-logo {
+  display: inline-flex;
   align-items: center;
-  gap: 10px;
-  padding: 8px 2px;
-  border-bottom: 1px solid #ececec;
+  gap: 12px;
+  padding: 2px 4px;
+  margin-left: -4px;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  color: var(--ink);
+  font: inherit;
+  transition: transform 180ms ease;
+}
+
+.xunyi-logo:hover {
+  transform: translateY(-1px);
+}
+
+.xunyi-logo__emblem {
+  position: relative;
+  width: 68px;
+  height: 48px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: visible;
+}
+
+.xunyi-emblem-svg {
+  display: block;
+  width: 68px;
+  height: 48px;
+  overflow: visible;
+}
+
+/* 错落平行细线背景 */
+.xunyi-emblem-svg line {
+  transition: transform 260ms cubic-bezier(0.16, 1, 0.3, 1), opacity 260ms ease;
+}
+
+.xunyi-logo:hover .xunyi-line--1,
+.xunyi-logo:hover .xunyi-line--3,
+.xunyi-logo:hover .xunyi-line--5,
+.xunyi-logo:hover .xunyi-line--7,
+.xunyi-logo:hover .xunyi-line--9,
+.xunyi-logo:hover .xunyi-line--11,
+.xunyi-logo:hover .xunyi-line--13 {
+  transform: translateX(-3px);
+  opacity: 0.55;
+}
+
+.xunyi-logo:hover .xunyi-line--2,
+.xunyi-logo:hover .xunyi-line--4,
+.xunyi-logo:hover .xunyi-line--6,
+.xunyi-logo:hover .xunyi-line--8,
+.xunyi-logo:hover .xunyi-line--10,
+.xunyi-logo:hover .xunyi-line--12,
+.xunyi-logo:hover .xunyi-line--14 {
+  transform: translateX(3px);
+  opacity: 0.6;
+}
+
+/* 前景墨「循」字 */
+.xunyi-svg-xun {
+  font-family: "Noto Serif SC", "Source Han Serif SC", "Songti SC", SimSun, serif;
+  font-size: 24px;
+  font-weight: 600;
+  fill: var(--ink);
+  stroke: none;
+  user-select: none;
+}
+
+/* 朱红「一」字 */
+.xunyi-svg-yi {
+  font-family: "Noto Serif SC", "Source Han Serif SC", "Songti SC", SimSun, serif;
+  font-size: 26px;
+  font-weight: 900;
+  fill: var(--seal);
+  stroke: var(--seal);
+  stroke-width: 1.2px;
+  paint-order: fill stroke;
+  letter-spacing: -0.05em;
+  user-select: none;
+  transition: transform 220ms ease;
+  transform-origin: 49px 43px;
+}
+
+.xunyi-logo:hover .xunyi-svg-yi {
+  transform: scale(1.08);
+}
+
+.xunyi-logo__wordmark {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.xunyi-logo__wordmark span {
+  font-family: "Noto Serif SC", "Source Han Serif SC", "Songti SC", SimSun, serif;
+  font-size: 19px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  color: var(--ink);
+}
+
+.xunyi-logo__wordmark span i {
+  font-style: normal;
+  color: var(--seal);
+  margin-left: 2px;
+}
+
+.xunyi-logo__wordmark small {
+  color: #999;
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+/* 标头标签与按钮 */
+.xunyi-nav-tabs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.xunyi-nav-btn {
+  padding: 4px 12px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: #888;
+  font-family: var(--font-serif);
+  font-size: 14px;
+  letter-spacing: 0.14em;
+  cursor: pointer;
+  transition: color 180ms ease, border-color 180ms ease;
+}
+
+.xunyi-nav-btn small {
+  font-size: 11px;
+  opacity: 0.8;
+}
+
+.xunyi-nav-btn:hover {
+  color: var(--ink);
+}
+
+.xunyi-nav-btn.is-active {
+  color: var(--seal);
+  border-bottom-color: var(--seal);
+  font-weight: 500;
+}
+
+.xunyi-back-home-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border: 0;
+  background: transparent;
+  color: #888;
+  font-family: var(--font-serif);
+  font-size: 13px;
+  letter-spacing: 0.12em;
+  cursor: pointer;
+  transition: color 180ms ease;
+}
+
+.xunyi-back-home-btn i {
+  font-style: normal;
   font-size: 14px;
 }
 
-.shisuan-records__rank { color: #9a9a9a; font-size: 11px; }
-.shisuan-records__word { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.shisuan-records__bar { height: 4px; }
-.shisuan-records__bar i { display: block; width: var(--w); height: 100%; background: #bbb; }
-.shisuan-records li strong { font-weight: 400; font-variant-numeric: tabular-nums; }
-.shisuan-records li.is-passed .shisuan-records__word,
-.shisuan-records li.is-passed strong { color: var(--seal); }
-.shisuan-records li.is-passed .shisuan-records__bar i { background: var(--seal); }
-
-/* ---------- 动画 ---------- */
-
-@keyframes shisuan-arrive { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
-@keyframes shisuan-rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
-@keyframes shisuan-stamp { from { opacity: 0; scale: 1.4; } to { opacity: 1; scale: 1; } }
-@keyframes shisuan-bar { from { transform: scaleX(0); } to { transform: scaleX(1); } }
-
-@keyframes shisuan-read {
-  0%, 100% { opacity: 0.25; transform: none; }
-  40% { opacity: 1; color: var(--seal); transform: translateY(-6px); }
+.xunyi-back-home-btn:hover {
+  color: var(--seal);
 }
 
-@keyframes shisuan-shake {
+.xunyi-error-banner {
+  margin-top: 14px;
+  padding: 10px 16px;
+  border-left: 2px solid var(--seal);
+  background: rgba(194, 12, 12, 0.05);
+  color: var(--seal);
+  font-size: 13px;
+  letter-spacing: 0.04em;
+}
+
+/* ---------- 核心画布与何以相遇式书脊 ---------- */
+
+.xunyi-stage-container {
+  position: relative;
+  width: 100%;
+  margin-top: 24px;
+}
+
+.xunyi-canvas {
+  position: relative;
+  min-height: 520px;
+  padding: 32px 0 60px;
+}
+
+/* 居中几何基准锚点（不可见） */
+.xunyi-center-anchor {
+  position: absolute;
+  top: 180px;
+  left: 50%;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+  visibility: hidden;
+}
+
+/* 何以相遇式书脊（黑色细竖线，高度随节点阶梯式向下延展） */
+.xunyi-spine-line {
+  position: absolute;
+  left: 32px;
+  top: 24px;
+  width: 2px;
+  background: var(--ink);
+  pointer-events: none;
+  transform-origin: top center;
+  transition: height 320ms cubic-bezier(0.16, 1, 0.3, 1),
+              opacity 450ms ease;
+}
+
+/* 丹红菱形节点（45度旋转方块，严格锚定于竖线中心） */
+.xunyi-diamond {
+  position: absolute;
+  left: 33px;
+  top: 11px;
+  width: 14px;
+  height: 14px;
+  background: var(--seal);
+  transform: translate(-50%, -50%) rotate(45deg);
+  transition: opacity 450ms ease, transform 500ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.xunyi-canvas.is-initial .xunyi-diamond {
+  opacity: 0;
+  transform: translate(-50%, -50%) rotate(45deg) scale(0.3);
+  pointer-events: none;
+}
+
+.xunyi-canvas.is-active .xunyi-node--1 .xunyi-diamond {
+  opacity: 1;
+  transform: translate(-50%, -50%) rotate(45deg) scale(1);
+  transition-delay: 140ms;
+}
+
+/* 节点容器 */
+.xunyi-node {
+  position: relative;
+  padding-left: 64px;
+  margin-bottom: 42px;
+  transition: opacity 500ms ease, transform 550ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* 节点 1 与节点 2：可平滑上隐折叠 */
+.xunyi-node--1 {
+  max-height: 90px;
+  overflow: visible;
+  transition: max-height 600ms cubic-bezier(0.2, 0.8, 0.2, 1),
+              margin-bottom 600ms cubic-bezier(0.2, 0.8, 0.2, 1),
+              opacity 450ms ease;
+}
+
+.xunyi-node--2 {
+  max-height: 200px;
+  overflow: visible;
+  transition: max-height 600ms cubic-bezier(0.2, 0.8, 0.2, 1),
+              margin-bottom 600ms cubic-bezier(0.2, 0.8, 0.2, 1),
+              opacity 450ms ease;
+}
+
+/* 阶段 1：第二个（Node 2）率先平滑折叠渐隐，红色菱形原地缩小消失 */
+.xunyi-canvas.is-settled .xunyi-node--2 {
+  animation: none !important;
+  opacity: 0 !important;
+  max-height: 0 !important;
+  margin-bottom: 0 !important;
+  pointer-events: none;
+  overflow: hidden;
+  transition: opacity 380ms ease 0ms,
+              max-height 580ms cubic-bezier(0.2, 0.8, 0.2, 1) 0ms,
+              margin-bottom 580ms cubic-bezier(0.2, 0.8, 0.2, 1) 0ms;
+}
+
+.xunyi-canvas.is-settled .xunyi-node--2 .xunyi-diamond {
+  animation: none !important;
+  opacity: 0 !important;
+  transform: translate(-50%, -50%) rotate(45deg) scale(0) !important;
+  transition: opacity 340ms ease 0ms,
+              transform 450ms cubic-bezier(0.2, 0.8, 0.2, 1) 0ms;
+}
+
+/* 阶段 2：随后紧跟第一个（Node 1）在短暂错峰后折叠渐隐，红色菱形原地缩小消失 */
+.xunyi-canvas.is-settled .xunyi-node--1 {
+  animation: none !important;
+  opacity: 0 !important;
+  max-height: 0 !important;
+  margin-bottom: 0 !important;
+  pointer-events: none;
+  overflow: hidden;
+  transition: opacity 380ms ease 90ms,
+              max-height 580ms cubic-bezier(0.2, 0.8, 0.2, 1) 90ms,
+              margin-bottom 580ms cubic-bezier(0.2, 0.8, 0.2, 1) 90ms;
+}
+
+.xunyi-canvas.is-settled .xunyi-node--1 .xunyi-diamond {
+  animation: none !important;
+  opacity: 0 !important;
+  transform: translate(-50%, -50%) rotate(45deg) scale(0) !important;
+  transition: opacity 340ms ease 90ms,
+              transform 450ms cubic-bezier(0.2, 0.8, 0.2, 1) 90ms;
+}
+
+.xunyi-node--2,
+.xunyi-node--3 {
+  animation: xunyi-node-enter 550ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.xunyi-node--2 .xunyi-diamond,
+.xunyi-node--3 .xunyi-diamond {
+  animation: xunyi-diamond-pop 500ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: 180ms;
+}
+
+.xunyi-node__head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+  user-select: none;
+  transition: opacity 400ms ease, transform 450ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.xunyi-node__kicker {
+  font-family: var(--font-serif);
+  font-size: 14px;
+  letter-spacing: 0.18em;
+  color: var(--ink);
+  font-weight: 500;
+}
+
+.xunyi-node__hairline {
+  width: 88px;
+  height: 1px;
+  background: rgba(0, 0, 0, 0.18);
+}
+
+/* 初始状态下第一节点各元素的退隐与就位 */
+.xunyi-canvas.is-initial .xunyi-node--1 .xunyi-node__head,
+.xunyi-canvas.is-initial .xunyi-pair-bridge,
+.xunyi-canvas.is-initial .xunyi-word-slot {
+  opacity: 0;
+  transform: translateX(-16px);
+  pointer-events: none;
+}
+
+.xunyi-canvas.is-active .xunyi-node--1 .xunyi-node__head,
+.xunyi-canvas.is-active .xunyi-pair-bridge,
+.xunyi-canvas.is-active .xunyi-word-slot {
+  opacity: 1;
+  transform: translateX(0);
+  transition: opacity 450ms ease 150ms, transform 450ms cubic-bezier(0.16, 1, 0.3, 1) 150ms;
+}
+
+/* ---------- 节点 1：偶遇 剑走偏锋（位移动画核心） ---------- */
+
+.xunyi-pair-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-height: 38px;
+}
+
+.xunyi-prompt-slot {
+  position: relative;
+  width: 150px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 移动包裹层：平滑承载居中初始状态与就位状态 */
+.xunyi-moving-wrap {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  transform-origin: center center;
+  transition: transform 600ms cubic-bezier(0.16, 1, 0.3, 1),
+              width 520ms cubic-bezier(0.16, 1, 0.3, 1),
+              height 520ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.xunyi-canvas.is-initial .xunyi-moving-wrap {
+  width: min(380px, 86vw);
+  height: 38px;
+  z-index: 5;
+}
+
+.xunyi-canvas.is-active .xunyi-moving-wrap {
+  width: 100%;
+  height: 100%;
+  z-index: 2;
+}
+
+/* 居中提示语：绝对定位于输入框正上方，完全脱离文档流以防挤压高度 */
+.xunyi-init-hint {
+  position: absolute;
+  bottom: calc(100% + 14px);
+  left: 50%;
+  transform: translateX(-50%);
+  margin: 0;
+  font-family: var(--font-serif);
+  font-size: 14px;
+  letter-spacing: 0.16em;
+  color: #888;
+  user-select: none;
+  white-space: nowrap;
+  pointer-events: none;
+  transition: opacity 300ms ease, transform 350ms ease;
+}
+
+.xunyi-canvas.is-initial .xunyi-init-hint {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+.xunyi-canvas.is-active .xunyi-init-hint {
+  opacity: 0;
+  transform: translateX(-50%) translateY(-14px);
+  pointer-events: none;
+}
+
+/* 由头输入框（居中对齐、纯净无边框，尺寸与偏锋词保持像素级一致） */
+.xunyi-prompt-input {
+  display: block;
+  width: 100%;
+  height: 36px;
+  line-height: 32px;
+  margin: 0;
+  padding: 0 0 4px;
+  box-sizing: border-box;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  font-family: var(--font-serif);
+  font-size: 22px;
+  font-weight: 500;
+  color: var(--ink);
+  caret-color: var(--seal);
+  text-align: center;
+  transition: font-size 400ms ease;
+}
+
+.xunyi-canvas.is-initial .xunyi-prompt-input {
+  font-size: 26px;
+  letter-spacing: 0.12em;
+}
+
+.xunyi-canvas.is-active .xunyi-prompt-input {
+  font-size: 22px;
+  letter-spacing: 0.08em;
+}
+
+/* 独一底线：从初始长实线平滑就位收缩为虚线，终点与偏锋词严格同高、百分之百重合 */
+.xunyi-init-line {
+  position: absolute;
+  bottom: 1px;
+  left: 0;
+  width: 100%;
+  height: 0;
+  margin: 0;
+  pointer-events: none;
+  border: 0;
+  transition: border-color 300ms ease;
+}
+
+.xunyi-canvas.is-initial .xunyi-init-line {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.22);
+}
+
+.xunyi-canvas.is-active .xunyi-init-line {
+  border-bottom: 1px dashed rgba(0, 0, 0, 0.26);
+}
+
+/* 两词桥接导引符 */
+.xunyi-pair-bridge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 38px;
+  user-select: none;
+}
+
+.xunyi-bridge-text {
+  font-family: var(--font-serif);
+  font-size: 14px;
+  line-height: 1;
+  letter-spacing: 0.12em;
+  color: #888;
+  white-space: nowrap;
+}
+
+/* 第二词：偏锋无关词输入槽位（与由头词高度、内边距严格对称对齐） */
+.xunyi-word-slot {
+  position: relative;
+  width: 150px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.xunyi-word-input {
+  display: block;
+  width: 100%;
+  height: 36px;
+  line-height: 32px;
+  margin: 0;
+  padding: 0 0 4px;
+  box-sizing: border-box;
+  border: 0;
+  border-bottom: 1px dashed rgba(0, 0, 0, 0.26);
+  outline: 0;
+  background: transparent;
+  font-family: var(--font-serif);
+  font-size: 22px;
+  font-weight: 500;
+  text-align: center;
+  color: var(--ink);
+  caret-color: var(--seal);
+  letter-spacing: 0.08em;
+  transition: border-bottom-color 180ms ease;
+}
+
+.xunyi-word-input:focus {
+  border-bottom-color: var(--seal);
+}
+
+.xunyi-prompt-input::placeholder,
+.xunyi-word-input::placeholder {
+  font-size: 15px;
+  color: #bbb;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+}
+
+/* ---------- 节点 2：结缘 言明所以（手稿式开放文思区） ---------- */
+
+.xunyi-explain-wrap {
+  margin-top: 4px;
+}
+
+.xunyi-explain-textarea {
+  display: block;
+  width: 100%;
+  min-height: 64px;
+  padding: 8px 0;
+  border: 0;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.16);
+  outline: 0;
+  background: transparent;
+  font-family: var(--font-serif);
+  font-size: 16px;
+  line-height: 1.8;
+  color: var(--ink);
+  caret-color: var(--seal);
+  resize: none;
+  transition: border-bottom-color 180ms ease;
+}
+
+.xunyi-explain-textarea:focus {
+  border-bottom-color: var(--seal);
+}
+
+.xunyi-explain-textarea::placeholder {
+  color: #aaa;
+  font-size: 14px;
+}
+
+.xunyi-explain-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 10px;
+}
+
+.xunyi-explain-counter {
+  font-size: 12px;
+  color: #999;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.06em;
+}
+
+.xunyi-explain-counter.is-invalid {
+  color: var(--seal);
+}
+
+.xunyi-submit-btn {
+  padding: 6px 20px;
+  border: 1px solid var(--ink);
+  background: var(--ink);
+  color: var(--paper);
+  font-family: var(--font-serif);
+  font-size: 13px;
+  letter-spacing: 0.16em;
+  cursor: pointer;
+  transition: background 180ms ease, border-color 180ms ease, transform 180ms ease;
+}
+
+.xunyi-submit-btn:hover:not(:disabled) {
+  background: var(--seal);
+  border-color: var(--seal);
+  transform: translateY(-1px);
+}
+
+.xunyi-submit-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+/* 逐字品读动画 */
+.xunyi-reading-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 0;
+  font-family: var(--font-serif);
+  font-size: 14px;
+  color: var(--seal);
+  letter-spacing: 0.2em;
+}
+
+.xunyi-reading-bar i {
+  font-style: normal;
+  display: inline-block;
+  animation: xunyi-read 1.2s ease-in-out infinite;
+  animation-delay: calc(var(--i) * 130ms);
+}
+
+.xunyi-rejection-card {
+  margin-top: 12px;
+  padding: 12px 16px;
+  border-left: 2px solid var(--seal);
+  background: rgba(194, 12, 12, 0.04);
+  color: var(--seal);
+  animation: xunyi-shake 360ms ease both;
+}
+
+.xunyi-rejection-card strong {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+}
+
+.xunyi-rejection-card p {
+  margin: 4px 0 0;
+  color: var(--ink);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.xunyi-error-text {
+  margin: 6px 0 0;
+  color: var(--seal);
+  font-size: 13px;
+}
+
+/* ---------- 节点 3：对弈成卷（水墨大字与指标） ---------- */
+
+.xunyi-result-pending {
+  padding: 8px 0;
+  font-family: var(--font-serif);
+  font-size: 13px;
+  color: #aaa;
+  letter-spacing: 0.12em;
+}
+
+.xunyi-result-view {
+  display: grid;
+  gap: 16px;
+  padding: 4px 0;
+}
+
+/* 结算内容项：从右侧逐条渐显滑入（轻快紧凑） */
+.xunyi-result-item {
+  animation: xunyi-slide-in-right 300ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  will-change: transform, opacity;
+}
+
+@keyframes xunyi-slide-in-right {
+  0% {
+    opacity: 0;
+    transform: translateX(32px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* 结算内容项：逆向反向飞出（自底向顶，倒序飞出） */
+.xunyi-result-view.is-exiting .xunyi-result-item {
+  animation: xunyi-slide-out-right 220ms cubic-bezier(0.4, 0, 0.2, 1) both !important;
+  pointer-events: none;
+}
+
+@keyframes xunyi-slide-out-right {
+  0% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(36px);
+  }
+}
+
+.xunyi-result-view.is-exiting .xunyi-result-item--7 { animation-delay: 0ms !important; }
+.xunyi-result-view.is-exiting .xunyi-result-item--6 { animation-delay: 30ms !important; }
+.xunyi-result-view.is-exiting .xunyi-result-item--5 { animation-delay: 60ms !important; }
+.xunyi-result-view.is-exiting .xunyi-result-item--4 { animation-delay: 90ms !important; }
+.xunyi-result-view.is-exiting .xunyi-result-item--3 { animation-delay: 120ms !important; }
+.xunyi-result-view.is-exiting .xunyi-result-item--2 { animation-delay: 150ms !important; }
+.xunyi-result-view.is-exiting .xunyi-result-item--1 { animation-delay: 180ms !important; }
+
+/* 退场时第三节点标头与菱形同步淡出缩放 */
+.xunyi-canvas.is-exiting .xunyi-node--3 .xunyi-node__head {
+  opacity: 0;
+  transform: translateY(-8px);
+  transition: opacity 200ms ease 180ms, transform 240ms cubic-bezier(0.4, 0, 0.2, 1) 180ms;
+}
+
+.xunyi-canvas.is-exiting .xunyi-node--3 .xunyi-diamond {
+  opacity: 0 !important;
+  transform: translate(-50%, -50%) rotate(45deg) scale(0) !important;
+  transition: opacity 200ms ease 180ms, transform 240ms cubic-bezier(0.4, 0, 0.2, 1) 180ms;
+}
+
+.xunyi-result-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding-bottom: 10px;
+  border-bottom: 1px dashed rgba(0, 0, 0, 0.14);
+}
+
+.xunyi-result-pair {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  font-family: var(--font-serif);
+  font-size: 17px;
+}
+
+.xunyi-result-prompt,
+.xunyi-result-word {
+  color: var(--seal);
+  font-weight: 500;
+}
+
+.xunyi-pair-arrow {
+  color: #999;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+}
+
+/* 诗笺大字呈现：出彩文字以朱砂点加注 */
+.xunyi-manuscript {
+  padding: 14px 18px;
+  background: rgba(0, 0, 0, 0.02);
+  border-left: 2px solid var(--seal);
+}
+
+.xunyi-manuscript-box {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.xunyi-manuscript-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 6px;
+  border-bottom: 1px dashed rgba(0, 0, 0, 0.08);
+}
+
+.xunyi-manuscript-title {
+  font-family: var(--font-serif);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  color: var(--seal);
+  font-weight: 600;
+  user-select: none;
+}
+
+/* 透视微开关 */
+.xunyi-xray-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 9px;
+  font-family: var(--font-serif);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  background: transparent;
+  border: 1px solid rgba(0, 0, 0, 0.16);
+  border-radius: 12px;
+  color: #777;
+  cursor: pointer;
+  transition: all 180ms ease;
+  user-select: none;
+}
+
+.xunyi-xray-btn:hover {
+  color: var(--ink);
+  border-color: var(--ink);
+  background: rgba(0, 0, 0, 0.03);
+}
+
+.xunyi-xray-btn.is-active {
+  color: var(--seal);
+  border-color: var(--seal);
+  background: rgba(184, 51, 42, 0.08);
+  font-weight: 500;
+}
+
+.xunyi-xray-icon {
+  font-size: 10px;
+  line-height: 1;
+}
+
+/* 诗笺主文字排版 */
+.xunyi-story-display {
+  font-family: var(--font-serif);
+  font-size: 19px;
+  line-height: 1.85;
+  color: var(--ink);
+  letter-spacing: 0.06em;
+  position: relative;
+  transition: line-height 260ms cubic-bezier(0.16, 1, 0.3, 1),
+              padding 260ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* 透视全览模式：舒展行高为小字夹注留足空间 */
+.xunyi-story-display.is-xray-active {
+  line-height: 2.75;
+  padding-bottom: 6px;
+}
+
+.xunyi-quote-mark {
+  color: #999;
+  user-select: none;
+}
+
+/* 单字单元 */
+.xunyi-char {
+  position: relative;
+  display: inline-block;
+  cursor: pointer;
+  transition: opacity 180ms ease, filter 180ms ease;
+}
+
+/* 单字字形：悬停时上浮 */
+.xunyi-char-glyph {
+  display: inline-block;
+  transition: transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1),
+              color 180ms ease,
+              font-weight 180ms ease,
+              text-shadow 200ms ease;
+}
+
+.xunyi-char:hover .xunyi-char-glyph,
+.xunyi-char.is-active .xunyi-char-glyph {
+  transform: translateY(-5px);
+  color: var(--seal) !important;
+  font-weight: 600;
+  text-shadow: 0 1px 3px rgba(184, 51, 42, 0.15);
+}
+
+/* 单字 nat 值标签：悬停或透视时下沉出现 */
+.xunyi-char-nat {
+  position: absolute;
+  left: 50%;
+  top: 100%;
+  transform: translate(-50%, 0) scale(0.8);
+  opacity: 0;
+  pointer-events: none;
+  white-space: nowrap;
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1.1;
+  padding: 1.5px 4px;
+  border-radius: 3px;
+  background: var(--paper);
+  color: var(--ink);
+  border: 1px solid rgba(0, 0, 0, 0.16);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  transition: opacity 200ms ease, transform 240ms cubic-bezier(0.16, 1, 0.3, 1);
+  z-index: 10;
+}
+
+/* 悬停或聚焦时：单字 nat 下沉浮现 */
+.xunyi-char:hover .xunyi-char-nat,
+.xunyi-char.is-active .xunyi-char-nat {
+  opacity: 1;
+  transform: translate(-50%, 5px) scale(1);
+}
+
+.xunyi-char.is-high-heat .xunyi-char-nat {
+  color: var(--seal);
+  border-color: rgba(184, 51, 42, 0.35);
+  background: var(--paper);
+}
+
+/* 全句透视模式下：所有 nat 值作为小字夹注常驻展现 */
+.xunyi-story-display.is-xray-active .xunyi-char-nat {
+  opacity: 0.92;
+  transform: translate(-50%, 3px) scale(0.92);
+  background: rgba(0, 0, 0, 0.035);
+  border-color: rgba(0, 0, 0, 0.1);
+  box-shadow: none;
+}
+
+.xunyi-story-display.is-xray-active .xunyi-char.is-high-heat .xunyi-char-nat {
+  background: rgba(184, 51, 42, 0.08);
+  border-color: rgba(184, 51, 42, 0.35);
+}
+
+.xunyi-story-display.is-xray-active .xunyi-char:hover .xunyi-char-nat,
+.xunyi-story-display.is-xray-active .xunyi-char.is-active .xunyi-char-nat {
+  opacity: 1;
+  transform: translate(-50%, 5px) scale(1.05);
+  background: var(--paper);
+  border-color: var(--seal);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* 聚焦聚光灯：抚触单字时，非聚焦字轻微暗淡 */
+@media (hover: hover) {
+  .xunyi-story-display:hover .xunyi-char {
+    opacity: 0.38;
+    filter: grayscale(0.2);
+  }
+  .xunyi-story-display:hover .xunyi-char:hover {
+    opacity: 1;
+    filter: none;
+  }
+}
+
+.xunyi-story-display.has-active-char .xunyi-char:not(.is-active) {
+  opacity: 0.38;
+  filter: grayscale(0.2);
+}
+
+.xunyi-story-display.has-active-char .xunyi-char.is-active {
+  opacity: 1;
+  filter: none;
+}
+
+/* 悬停或透视时，朱砂圆点隐去让位给精确数值 */
+.xunyi-char:hover .xunyi-char-dot,
+.xunyi-char.is-active .xunyi-char-dot,
+.xunyi-story-display.is-xray-active .xunyi-char-dot {
+  opacity: 0 !important;
+  transform: translateX(-50%) scale(0) !important;
+}
+
+.xunyi-char-dot {
+  position: absolute;
+  left: 50%;
+  bottom: -4px;
+  width: 3.5px;
+  height: 3.5px;
+  border-radius: 50%;
+  background: var(--seal);
+  transform-origin: center center;
+  pointer-events: none;
+  transition: opacity 220ms ease, transform 220ms ease;
+}
+
+.xunyi-char.is-rare {
+  text-decoration: underline dotted var(--seal);
+  text-underline-offset: 5px;
+}
+
+/* 三栏意趣指标 */
+.xunyi-metrics {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 1fr;
+  gap: 16px;
+  padding: 14px 0;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.xunyi-metric-item {
+  display: grid;
+  gap: 3px;
+  text-align: center;
+}
+
+.xunyi-metric-label {
+  color: #888;
+  font-size: 12px;
+  letter-spacing: 0.14em;
+}
+
+.xunyi-metric-val {
+  font-family: var(--font-serif);
+  font-size: 22px;
+  font-weight: 500;
+  color: var(--ink);
+}
+
+.xunyi-metric-val small {
+  font-size: 12px;
+  color: #888;
+}
+
+/* 惊奇意趣算式：倍乘因子以标红加粗 × 普通黑字 nat = 最终结果 */
+.xunyi-calc-formula,
+.xunyi-record-formula {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 2px;
+  font-family: var(--font-serif);
+  font-variant-numeric: tabular-nums;
+  cursor: help;
+}
+
+.xunyi-calc-formula {
+  font-size: 19px;
+  white-space: nowrap;
+}
+
+.xunyi-record-formula {
+  font-size: 14px;
+}
+
+.xunyi-factor-red {
+  color: var(--seal) !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.02em;
+}
+
+.xunyi-times,
+.xunyi-equal {
+  color: #888;
+  font-weight: 400;
+  padding: 0 1px;
+}
+
+.xunyi-story-nat {
+  color: var(--ink);
+  font-weight: 400;
+}
+
+.xunyi-total-val,
+.xunyi-record-final {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.xunyi-unit {
+  font-size: 11px;
+  color: #888;
+  margin-left: 2px;
+}
+
+/* 大模型评价卡片（AB评价 & 故事评价） */
+.xunyi-eval-card {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding: 10px 16px;
+  background: rgba(0, 0, 0, 0.02);
+  border-left: 2px solid var(--seal);
+  box-sizing: border-box;
+}
+
+.xunyi-eval-card--pair {
+  margin-top: -4px;
+}
+
+.xunyi-eval-lead {
+  flex-shrink: 0;
+  font-family: var(--font-serif);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  color: var(--seal);
+  font-weight: 600;
+  user-select: none;
+}
+
+.xunyi-eval-text {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-size: 13.5px;
+  line-height: 1.65;
+  color: var(--ink);
+}
+
+/* 结合概率的评语 */
+.xunyi-odds-box {
+  padding: 12px 18px;
+  background: rgba(0, 0, 0, 0.02);
+  border-left: 2px solid rgba(0, 0, 0, 0.18);
+  box-sizing: border-box;
+}
+
+.xunyi-comment-quote {
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-serif);
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--ink);
+  font-style: italic;
+}
+
+.xunyi-critique-text {
+  margin: 0;
+  color: #666;
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+/* 结果操作按钮 */
+.xunyi-result-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.xunyi-btn {
+  padding: 7px 16px;
+  border: 1px solid var(--ink);
+  font-family: var(--font-serif);
+  font-size: 13px;
+  letter-spacing: 0.12em;
+  cursor: pointer;
+  transition: background 180ms ease, color 180ms ease, border-color 180ms ease;
+}
+
+.xunyi-btn--secondary {
+  background: transparent;
+  color: var(--ink);
+}
+
+.xunyi-btn--secondary:hover {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.xunyi-btn--primary {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.xunyi-btn--primary:hover {
+  background: var(--seal);
+  border-color: var(--seal);
+}
+
+/* ---------- 灵感归谱 ---------- */
+
+.xunyi-history-list {
+  display: grid;
+  gap: 12px;
+  animation: xunyi-unfold 240ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.xunyi-history-lead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding-bottom: 10px;
+  border-bottom: var(--hairline);
+}
+
+.xunyi-history-lead span {
+  font-family: var(--font-serif);
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+}
+
+.xunyi-history-lead small {
+  color: #888;
+  font-size: 12px;
+}
+
+.xunyi-empty-history {
+  padding: 48px 20px;
+  text-align: center;
+  color: #888;
+}
+
+.xunyi-empty-history p {
+  font-family: var(--font-serif);
+  font-size: 16px;
+  margin: 0 0 6px;
+  color: var(--ink);
+}
+
+.xunyi-empty-history small {
+  font-size: 12px;
+  color: #999;
+}
+
+.xunyi-folder-card {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+  background: transparent;
+}
+
+.xunyi-folder-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 4px;
+  gap: 12px;
+}
+
+.xunyi-folder-toggle {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+}
+
+.xunyi-folder-arrow {
+  color: #888;
+  font-size: 12px;
+}
+
+.xunyi-folder-title {
+  font-family: var(--font-serif);
+  font-size: 17px;
+  font-weight: 500;
+  color: var(--ink);
+  letter-spacing: 0.08em;
+}
+
+.xunyi-folder-meta {
+  color: #888;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.xunyi-folder-replay {
+  flex: none;
+  padding: 3px 10px;
+  border: 1px solid var(--seal);
+  background: transparent;
+  color: var(--seal);
+  font-family: var(--font-serif);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  transition: background 160ms ease, color 160ms ease;
+}
+
+.xunyi-folder-replay:hover {
+  background: var(--seal);
+  color: #fff;
+}
+
+.xunyi-records-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px dashed rgba(0, 0, 0, 0.08);
+}
+
+.xunyi-records-list li {
+  padding: 10px 4px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.xunyi-records-list li:last-child {
+  border-bottom: 0;
+}
+
+.xunyi-records-list li.is-top {
+  background: rgba(194, 12, 12, 0.02);
+}
+
+.xunyi-record-row {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  font-size: 14px;
+}
+
+.xunyi-record-rank {
+  display: inline-block;
+  min-width: 22px;
+  font-size: 12px;
+  color: #999;
+  font-variant-numeric: tabular-nums;
+}
+
+.xunyi-records-list li.is-top .xunyi-record-rank {
+  color: var(--seal);
+  font-weight: bold;
+}
+
+.xunyi-record-word {
+  font-family: var(--font-serif);
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.xunyi-records-list li.is-top .xunyi-record-word {
+  color: var(--seal);
+}
+
+.xunyi-record-score {
+  color: #444;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+.xunyi-record-date {
+  margin-left: auto;
+  color: #aaa;
+  font-size: 11px;
+}
+
+.xunyi-record-del {
+  border: 0;
+  background: transparent;
+  color: #bbb;
+  font-size: 15px;
+  cursor: pointer;
+  padding: 0 4px;
+  line-height: 1;
+}
+
+.xunyi-record-del:hover {
+  color: var(--seal);
+}
+
+.xunyi-record-explain {
+  margin: 4px 0 0 32px;
+  color: #555;
+  font-family: var(--font-serif);
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+/* ---------- 动效定义 ---------- */
+
+@keyframes xunyi-page-enter {
+  0% { opacity: 0; transform: translateY(12px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes xunyi-node-enter {
+  0% {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes xunyi-diamond-pop {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) rotate(45deg) scale(0.3);
+  }
+  60% {
+    opacity: 1;
+    transform: translate(-50%, -50%) rotate(45deg) scale(1.15);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(-50%, -50%) rotate(45deg) scale(1);
+  }
+}
+
+@keyframes xunyi-unfold {
+  0% { opacity: 0; transform: translateY(12px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes xunyi-read {
+  0%, 100% { opacity: 0.35; transform: translateY(0); }
+  50% { opacity: 1; color: var(--seal); transform: translateY(-4px); }
+}
+
+@keyframes xunyi-shake {
   0%, 100% { transform: none; }
-  25% { transform: translateX(-5px); }
-  50% { transform: translateX(4px); }
+  25% { transform: translateX(-4px); }
+  50% { transform: translateX(3px); }
   75% { transform: translateX(-2px); }
 }
 
-@media (max-width: 520px) {
-  .shisuan-dialog { padding: 18px 16px 20px; }
-  .shisuan-field { grid-template-columns: 1fr; }
-  .shisuan-field > span { justify-content: start; padding: 8px 14px 0; border-right: 0; color: #777; }
+/* ---------- 暗黑模式适配 ---------- */
+
+.page--dark .xunyi-node__hairline {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.page--dark .xunyi-word-input {
+  border-bottom-color: rgba(255, 255, 255, 0.26);
+}
+
+.page--dark .xunyi-canvas.is-initial .xunyi-init-line {
+  border-bottom-color: rgba(255, 255, 255, 0.22);
+}
+
+.page--dark .xunyi-canvas.is-active .xunyi-init-line {
+  border-bottom-color: rgba(255, 255, 255, 0.26);
+}
+
+.page--dark .xunyi-explain-textarea {
+  border-bottom-color: rgba(255, 255, 255, 0.16);
+}
+
+.page--dark .xunyi-critique-box,
+.page--dark .xunyi-eval-card,
+.page--dark .xunyi-odds-box,
+.page--dark .xunyi-manuscript {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.page--dark .xunyi-manuscript-topbar {
+  border-bottom-color: rgba(255, 255, 255, 0.1);
+}
+
+.page--dark .xunyi-xray-btn {
+  border-color: rgba(255, 255, 255, 0.2);
+  color: #aaa;
+}
+
+.page--dark .xunyi-xray-btn:hover {
+  border-color: #eee;
+  color: #eee;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.page--dark .xunyi-xray-btn.is-active {
+  border-color: var(--seal);
+  color: var(--seal);
+  background: rgba(184, 51, 42, 0.15);
+}
+
+.page--dark .xunyi-char-nat {
+  background: #222;
+  color: #ddd;
+  border-color: rgba(255, 255, 255, 0.2);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.45);
+}
+
+.page--dark .xunyi-story-display.is-xray-active .xunyi-char-nat {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.page--dark .xunyi-odds-box {
+  border-left-color: rgba(255, 255, 255, 0.2);
+}
+
+.page--dark .xunyi-metrics {
+  border-top-color: rgba(255, 255, 255, 0.1);
+  border-bottom-color: rgba(255, 255, 255, 0.1);
+}
+
+.page--dark .xunyi-result-header {
+  border-bottom-color: rgba(255, 255, 255, 0.16);
+}
+
+.page--dark .xunyi-folder-card {
+  border-bottom-color: rgba(255, 255, 255, 0.1);
+}
+
+.page--dark .xunyi-records-list {
+  border-top-color: rgba(255, 255, 255, 0.08);
+}
+
+.page--dark .xunyi-records-list li {
+  border-bottom-color: rgba(255, 255, 255, 0.05);
+}
+
+.page--dark .xunyi-records-list li.is-top {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+/* ---------- 响应式适配 ---------- */
+
+@media (max-width: 640px) {
+  .hero--xunyi {
+    padding-top: 18px;
+    padding-bottom: 48px;
+  }
+  .xunyi-topbar {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .xunyi-node {
+    padding-left: 48px;
+  }
+  .xunyi-spine-line {
+    left: 18px;
+  }
+  .xunyi-diamond {
+    left: 19px;
+  }
+  .xunyi-pair-row {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .xunyi-metrics {
+    grid-template-columns: 1fr;
+    gap: 8px;
+    text-align: left;
+  }
+  .xunyi-metric-item {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+  }
+  .xunyi-result-actions {
+    flex-direction: column;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .shisuan-layer *, .shisuan-layer *::before { animation-duration: 1ms !important; animation-delay: 0ms !important; }
+  .xunyi-open-view,
+  .xunyi-spine-line,
+  .xunyi-diamond,
+  .xunyi-node,
+  .xunyi-moving-wrap,
+  .xunyi-init-line,
+  .xunyi-result-item,
+  .xunyi-reading-bar i {
+    transition-duration: 1ms !important;
+    animation-duration: 1ms !important;
+    animation-delay: 0ms !important;
+  }
 }

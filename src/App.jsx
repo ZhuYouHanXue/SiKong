@@ -321,6 +321,7 @@ function App() {
     setMode('explore')
     setTransition('returning')
     setStatus('idle')
+    setShowShisuan(false)
     returnTimerRef.current = window.setTimeout(() => {
       setTransition((current) => current === 'returning' ? null : current)
       returnTimerRef.current = null
@@ -355,7 +356,7 @@ function App() {
 
   return (
     <div
-      className={`page page--${status} ${seed ? 'page--has-seed' : ''} ${transition ? `page--${transition}` : ''}`}
+      className={`page page--${status} ${seed ? 'page--has-seed' : ''} ${transition ? `page--${transition}` : ''} ${showShisuan ? 'page--xunyi' : ''}`}
     >
       <div className="frame" aria-hidden="true">
         <span className="frame__corner frame__corner--top-left" />
@@ -375,170 +376,179 @@ function App() {
         ))}
       </div>
 
-      <main className="hero">
-        <section className="entry" aria-labelledby="entry-title">
-          <button
-            className="logo-trigger"
-            type="button"
-            onClick={() => savedCardsDrawerRef.current?.open()}
-            aria-label="打开留印"
-          >
-            <SikongLogo />
-          </button>
+      {showShisuan ? (
+        <main className="hero hero--xunyi">
+          <ShiSuan
+            onReturnHome={() => setShowShisuan(false)}
+            onOpenDrawer={() => savedCardsDrawerRef.current?.open()}
+          />
+        </main>
+      ) : (
+        <main className="hero">
+          <section className="entry" aria-labelledby="entry-title">
+            <button
+              className="logo-trigger"
+              type="button"
+              onClick={() => savedCardsDrawerRef.current?.open()}
+              aria-label="打开留印"
+            >
+              <SikongLogo />
+            </button>
 
-          <div className="entry__copy">
-            <h1 id="entry-title">
-              写下近来萦绕于你的
-              <span>一事一物</span>
-            </h1>
-          </div>
-
-          <form ref={seedFormRef} className="seed-form" onSubmit={handleSubmit}>
-            <label className="sr-only" htmlFor="seed-input">
-              写下一个起点
-            </label>
-            <div className={`seed-box${showEnginePicker ? '' : ' seed-box--no-engine'}`}>
-              {showEnginePicker && (
-              <div className="seed-engine-picker">
-                <button type="button" className="seed-engine-select" onClick={() => { setShowSuggestions(false); setShowEngineMenu((value) => !value) }} aria-expanded={showEngineMenu}>{engineNames[openingType]} <i>⌄</i></button>
-                {showEngineMenu && <div className="seed-engine-menu">{Object.entries(engineNames).map(([type, name]) => <button type="button" key={type} className={openingType === type ? 'is-active' : ''} onClick={() => { setOpeningType(type); setShowEngineMenu(false) }}><strong>{name}</strong><small>{engineNotes[type]}</small></button>)}</div>}
-              </div>
-              )}
-              <div className="seed-input-wrap">
-                <input
-                  ref={inputRef}
-                  id="seed-input"
-                  name="seed"
-                  type="text"
-                  autoComplete="off"
-                  value={seed}
-                  onChange={handleChange}
-                  onFocus={() => { setShowSuggestions(Boolean(seed.trim())); setShowEngineMenu(false) }}
-                  disabled={Boolean(transition)}
-                  readOnly={isOfflineMode}
-                  placeholder={isOfflineMode ? '离线模式：仅可探索「人工智能」' : "一个词，一句话，或一段近来的念头"}
-                  aria-describedby="seed-status"
-                />
-                <span className={`seed-input-count${isSeedOverLimit ? ' is-over' : ''}`} aria-hidden="true">
-                  {seedLength} / {MAX_HEAD_LENGTH}
-                </span>
-              </div>
-              <button type="submit" disabled={Boolean(transition)}>
-                <span>由此生枝</span>
-              </button>
+            <div className="entry__copy">
+              <h1 id="entry-title">
+                写下近来萦绕于你的
+                <span>一事一物</span>
+              </h1>
             </div>
 
-            {activeTutorial === 'welcome' && (
-              <>
-                <div className="sikong-tutorial-blocker" onClick={triggerTutorialShake} aria-hidden="true" />
+            <form ref={seedFormRef} className="seed-form" onSubmit={handleSubmit}>
+              <label className="sr-only" htmlFor="seed-input">
+                写下一个起点
+              </label>
+              <div className={`seed-box${showEnginePicker ? '' : ' seed-box--no-engine'}`}>
+                {showEnginePicker && (
+                <div className="seed-engine-picker">
+                  <button type="button" className="seed-engine-select" onClick={() => { setShowSuggestions(false); setShowEngineMenu((value) => !value) }} aria-expanded={showEngineMenu}>{engineNames[openingType]} <i>⌄</i></button>
+                  {showEngineMenu && <div className="seed-engine-menu">{Object.entries(engineNames).map(([type, name]) => <button type="button" key={type} className={openingType === type ? 'is-active' : ''} onClick={() => { setOpeningType(type); setShowEngineMenu(false) }}><strong>{name}</strong><small>{engineNotes[type]}</small></button>)}</div>}
+                </div>
+                )}
+                <div className="seed-input-wrap">
+                  <input
+                    ref={inputRef}
+                    id="seed-input"
+                    name="seed"
+                    type="text"
+                    autoComplete="off"
+                    value={seed}
+                    onChange={handleChange}
+                    onFocus={() => { setShowSuggestions(Boolean(seed.trim())); setShowEngineMenu(false) }}
+                    disabled={Boolean(transition)}
+                    readOnly={isOfflineMode}
+                    placeholder={isOfflineMode ? '离线模式：仅可探索「人工智能」' : "一个词，一句话，或一段近来的念头"}
+                    aria-describedby="seed-status"
+                  />
+                  <span className={`seed-input-count${isSeedOverLimit ? ' is-over' : ''}`} aria-hidden="true">
+                    {seedLength} / {MAX_HEAD_LENGTH}
+                  </span>
+                </div>
+                <button type="submit" disabled={Boolean(transition)}>
+                  <span>由此生枝</span>
+                </button>
+              </div>
+
+              {activeTutorial === 'welcome' && (
+                <>
+                  <div className="sikong-tutorial-blocker" onClick={triggerTutorialShake} aria-hidden="true" />
+                  <div className="sikong-tutorial-anchor">
+                    <aside
+                      className={`sikong-tutorial sikong-tutorial--welcome ${welcomeShake ? 'sikong-tutorial--shake' : ''}`}
+                      role="alertdialog"
+                      aria-label="新手引导"
+                      onAnimationEnd={handleTutorialShakeEnd}
+                    >
+                      <p>
+                        欢迎来到司空，<br />
+                        这是一个意外探索与灵感漫游应用。
+                      </p>
+                      <button type="button" className="sikong-tutorial__close" onClick={closeWelcomeTutorial} aria-label="继续">→</button>
+                    </aside>
+                  </div>
+                </>
+              )}
+              {activeTutorial === 'enter' && (
                 <div className="sikong-tutorial-anchor">
-                  <aside
-                    className={`sikong-tutorial sikong-tutorial--welcome ${welcomeShake ? 'sikong-tutorial--shake' : ''}`}
-                    role="alertdialog"
-                    aria-label="新手引导"
-                    onAnimationEnd={handleTutorialShakeEnd}
-                  >
+                  <aside className="sikong-tutorial" role="note" aria-label="新手引导">
                     <p>
-                      欢迎来到司空，<br />
-                      这是一个意外探索与灵感漫游应用。
+                      随便输入点什么，<br />
+                      或者直接选择一条“猜你不喜欢”
                     </p>
-                    <button type="button" className="sikong-tutorial__close" onClick={closeWelcomeTutorial} aria-label="继续">→</button>
                   </aside>
                 </div>
-              </>
-            )}
-            {activeTutorial === 'enter' && (
-              <div className="sikong-tutorial-anchor">
-                <aside className="sikong-tutorial" role="note" aria-label="新手引导">
-                  <p>
-                    随便输入点什么，<br />
-                    或者直接选择一条“猜你不喜欢”
-                  </p>
-                </aside>
-              </div>
-            )}
-            {activeTutorial === 'sprout' && (
-              <div className="sikong-tutorial-anchor">
-                <aside className="sikong-tutorial" role="note" aria-label="新手引导">
-                  <p>之后，由此生枝，邂逅意外。</p>
-                </aside>
-              </div>
-            )}
+              )}
+              {activeTutorial === 'sprout' && (
+                <div className="sikong-tutorial-anchor">
+                  <aside className="sikong-tutorial" role="note" aria-label="新手引导">
+                    <p>之后，由此生枝，邂逅意外。</p>
+                  </aside>
+                </div>
+              )}
 
-            {!isOfflineMode && (
-            <div className="seed-recommendation-row">
-              <button
-                className={`seed-recommendation seed-recommendation--${recommendationMode}`}
-                type="button"
-                aria-label={recommendationMode === 'dislike' ? '猜你不喜欢，点击查看别人喜欢' : '猜别人喜欢，点击查看猜你不喜欢'}
-                onClick={() => setRecommendationMode((mode) => mode === 'dislike' ? 'popular' : 'dislike')}
-              >
-                <span className="seed-recommendation__label" key={recommendationMode}>
-                  {recommendationMode === 'dislike' ? <>猜你<i>不</i>喜欢</> : <>猜<i>别人</i>喜欢</>}
-                </span>
-              </button>
-              <div
-                className="seed-recommendation-list"
-                aria-label={recommendationMode === 'dislike' ? '猜你不喜欢的话题' : '猜别人喜欢的话题'}
-              >
-                {visibleRecommendations.map((topic) => (
-                  <button type="button" key={`${recommendationMode}-${topic}`} onClick={() => handleSuggestion(topic)}>
-                    {topic}<i aria-hidden="true">↗</i>
-                  </button>
-                ))}
-              </div>
-            </div>
-            )}
-            {!isOfflineMode && !tutorialActive && (
-              <button type="button" className="shisuan-entry" onClick={() => setShowShisuan(true)}>
-                <i>⌜失算⌟</i>闯一关<small>让司空猜不中你</small>
-              </button>
-            )}
-            {!isOfflineMode && showSuggestions && seed.trim() && (
-              <div className="seed-suggestions" role="listbox" aria-label="候选话题">
-                {candidateTopics.map((topic) => {
-                  const marked = candidateHighlights[topic] || []
-                  return (
-                    <button
-                      type="button"
-                      role="option"
-                      aria-selected={topic === seed}
-                      key={topic}
-                      onMouseDown={(event) => event.preventDefault()}
-                      onClick={() => handleSuggestion(topic)}
-                    >
-                      <span className="seed-candidate-text">
-                        {Array.from(topic).map((char, index) => (
-                          <span key={index} className={marked.includes(index) ? 'is-mark' : undefined}>{char}</span>
-                        ))}
-                      </span>
-                      <i aria-hidden="true">↗</i>
+              {!isOfflineMode && (
+              <div className="seed-recommendation-row">
+                <button
+                  className={`seed-recommendation seed-recommendation--${recommendationMode}`}
+                  type="button"
+                  aria-label={recommendationMode === 'dislike' ? '猜你不喜欢，点击查看别人喜欢' : '猜别人喜欢，点击查看猜你不喜欢'}
+                  onClick={() => setRecommendationMode((mode) => mode === 'dislike' ? 'popular' : 'dislike')}
+                >
+                  <span className="seed-recommendation__label" key={recommendationMode}>
+                    {recommendationMode === 'dislike' ? <>猜你<i>不</i>喜欢</> : <>猜<i>别人</i>喜欢</>}
+                  </span>
+                </button>
+                <div
+                  className="seed-recommendation-list"
+                  aria-label={recommendationMode === 'dislike' ? '猜你不喜欢的话题' : '猜别人喜欢的话题'}
+                >
+                  {visibleRecommendations.map((topic) => (
+                    <button type="button" key={`${recommendationMode}-${topic}`} onClick={() => handleSuggestion(topic)}>
+                      {topic}<i aria-hidden="true">↗</i>
                     </button>
-                  )
-                })}
+                  ))}
+                </div>
               </div>
-            )}
+              )}
+              {!isOfflineMode && !tutorialActive && (
+                <button type="button" className="shisuan-entry" onClick={() => setShowShisuan(true)}>
+                  <i>⌜循一⌟</i>对一局<small>让司空猜不中你</small>
+                </button>
+              )}
+              {!isOfflineMode && showSuggestions && seed.trim() && (
+                <div className="seed-suggestions" role="listbox" aria-label="候选话题">
+                  {candidateTopics.map((topic) => {
+                    const marked = candidateHighlights[topic] || []
+                    return (
+                      <button
+                        type="button"
+                        role="option"
+                        aria-selected={topic === seed}
+                        key={topic}
+                        onMouseDown={(event) => event.preventDefault()}
+                        onClick={() => handleSuggestion(topic)}
+                      >
+                        <span className="seed-candidate-text">
+                          {Array.from(topic).map((char, index) => (
+                            <span key={index} className={marked.includes(index) ? 'is-mark' : undefined}>{char}</span>
+                          ))}
+                        </span>
+                        <i aria-hidden="true">↗</i>
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
 
-            {isOfflineMode && (
-              <div className="seed-offline-note" role="status">
-                当前离线示例模式：未配置 API Key，仅可探索「人工智能」。配置 DeepSeek API Key 可解锁完整生成。
+              {isOfflineMode && (
+                <div className="seed-offline-note" role="status">
+                  当前离线示例模式：未配置 API Key，仅可探索「人工智能」。配置 DeepSeek API Key 可解锁完整生成。
+                </div>
+              )}
+
+              <div className="seed-form__meta">
+                <output
+                  id="seed-status"
+                  className={`seed-status seed-status--${status}`}
+                  aria-live="polite"
+                >
+                  <i aria-hidden="true" />
+                  {statusText}
+                </output>
               </div>
-            )}
+            </form>
 
-            <div className="seed-form__meta">
-              <output
-                id="seed-status"
-                className={`seed-status seed-status--${status}`}
-                aria-live="polite"
-              >
-                <i aria-hidden="true" />
-                {statusText}
-              </output>
-            </div>
-          </form>
-
-        </section>
-      </main>
+          </section>
+        </main>
+      )}
 
       {transition === 'departing' && (
         <div className="departure-glyph-layer" aria-hidden="true">
@@ -558,8 +568,6 @@ function App() {
           ))}
         </div>
       )}
-
-      {showShisuan && <ShiSuan onClose={() => setShowShisuan(false)} />}
 
       <SavedCardsDrawer ref={savedCardsDrawerRef} variant="embedded" onOpenCard={handleOpenSavedCard} offlineMode={isOfflineMode} onReturnHome={handleReturnHome} />
     </div>

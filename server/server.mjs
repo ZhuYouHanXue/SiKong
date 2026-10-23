@@ -30,6 +30,7 @@ const MAX_EXPLANATIONS = Math.max(20, Number(process.env.SIKONG_MAX_EXPLANATION_
 const MAX_EMPTY_SENTENCES = Math.max(1, Math.min(9, Number(process.env.SIKONG_EMPTY_MAX_SENTENCES || 9)))
 const MAX_EMPTY_LENGTH = Math.max(40, Math.min(180, Number(process.env.SIKONG_EMPTY_MAX_LENGTH || 180)))
 const SAVED_CARDS_FILE = path.join(__dirname, 'saved-cards.json')
+const SHISUAN_RECORDS_FILE = path.join(__dirname, 'shisuan-records.json')
 const MODEL_CONFIG_FILE = path.join(__dirname, 'model-config.json')
 const DIST_DIR = path.resolve(__dirname, '..', 'dist')
 let modelAvailable = false
@@ -463,6 +464,53 @@ async function clearSavedCards() {
   return operation
 }
 
+async function readShisuanRecords() {
+  try {
+    const items = JSON.parse(await readFile(SHISUAN_RECORDS_FILE, 'utf8'))
+    return Array.isArray(items) ? items : []
+  } catch (error) {
+    if (error?.code === 'ENOENT' || error instanceof SyntaxError) return []
+    throw error
+  }
+}
+
+function saveShisuanRecordToFile(record) {
+  const operation = saveQueue.then(async () => {
+    let items = []
+    try {
+      items = JSON.parse(await readFile(SHISUAN_RECORDS_FILE, 'utf8'))
+    } catch (error) {
+      if (error?.code !== 'ENOENT' && !(error instanceof SyntaxError)) throw error
+    }
+    if (!Array.isArray(items)) items = []
+    const index = items.findIndex(item => item?.id === record.id)
+    if (index >= 0) items[index] = record
+    else items.unshift(record)
+    await writeFile(SHISUAN_RECORDS_FILE, JSON.stringify(items, null, 2), 'utf8')
+    return record
+  })
+  saveQueue = operation.catch(() => undefined)
+  return operation
+}
+
+function removeShisuanRecordFromFile(id) {
+  const operation = saveQueue.then(async () => {
+    let items = []
+    try {
+      items = JSON.parse(await readFile(SHISUAN_RECORDS_FILE, 'utf8'))
+    } catch (error) {
+      if (error?.code !== 'ENOENT' && !(error instanceof SyntaxError)) throw error
+    }
+    if (!Array.isArray(items)) return false
+    const nextItems = items.filter(item => item?.id !== id)
+    if (nextItems.length === items.length) return false
+    await writeFile(SHISUAN_RECORDS_FILE, JSON.stringify(nextItems, null, 2), 'utf8')
+    return true
+  })
+  saveQueue = operation.catch(() => undefined)
+  return operation
+}
+
 function sse(response, event, data, signal) {
   if (signal.aborted || response.destroyed || response.writableEnded) return false
   response.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`)
@@ -701,12 +749,53 @@ function clientIp(request) {
 }
 
 async function handleShisuan(request, response, pathname, context) {
-  if (!modelAvailable) return sendJSON(response, 503, { error: '失算需要司空的大脑：请先在设置中配置 DeepSeek API Key', code: 'MODEL_UNAVAILABLE' })
+  if (pathname === '/api/shisuan/records' && request.method === 'GET') {
+    return sendJSON(response, 200, { records: await readShisuanRecords() })
+  }
+  const deleteRecordMatch = pathname.match(/^\/api\/shisuan\/records\/([^/]+)$/)
+  if (deleteRecordMatch && request.method === 'DELETE') {
+    const removed = await removeShisuanRecordFromFile(decodeURIComponent(deleteRecordMatch[1]))
+    return sendJSON(response, removed ? 200 : 404, { removed })
+  }
+
+  if (!modelAvailable) return sendJSON(response, 503, { error: '循一需要司空的大脑：请先在设置中配置 DeepSeek API Key', code: 'MODEL_UNAVAILABLE' })
   const ip = clientIp(request)
   if (pathname === '/api/shisuan/attempt' && request.method === 'POST') {
     const body = await readBody(request, context.signal)
-    const result = await shisuan.attempt({ level: body.level, word: body.word, explain: body.explain, ip, signal: context.signal })
+    const result = await shisuan.attempt({
+      prompt: body.prompt,
+      level: body.level,
+      word: body.word,
+      explain: body.explain,
+      ip,
+      signal: context.signal,
+    })
     if (context.signal.aborted) return null
+
+    if (result.accepted) {
+      const record = {
+        id: randomUUID(),
+        prompt: result.prompt,
+        word: result.word,
+        explain: clean(body.explain),
+        score: result.score,
+        storyScore: result.storyScore,
+        pairScore: result.pairScore,
+        pairMultiplier: result.pairMultiplier,
+        pairReason: result.pairReason,
+        perChar: result.perChar,
+        odds: result.odds,
+        estimated: result.estimated,
+        pieces: result.pieces,
+        comment: result.comment,
+        seal: result.seal,
+        critique: result.critique,
+        createdAt: Date.now(),
+      }
+      await saveShisuanRecordToFile(record)
+      return sendJSON(response, 200, { ...result, recordId: record.id, record })
+    }
+
     return sendJSON(response, 200, result)
   }
   return sendJSON(response, 404, { error: `未知接口：${pathname}` })

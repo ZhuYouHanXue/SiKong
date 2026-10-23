@@ -4,4 +4,7 @@ server/.env.local
 server/.env
 server/model-config.json
 server/saved-cards.json
+server/shisuan-records.json
 record-kit/
+poster/
+.claude/

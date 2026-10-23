@@ -55,7 +55,8 @@ const SUPERSCRIPT = { 0: '⁰', 1: '¹', 2: '²', 3: '³', 4: '⁴', 5: '⁵', 6
 /** 1234 → 1234；6640000 → 664万；7.4e16 → 7.4×10¹⁶ */
 export function formatBigNumber(value) {
   if (!Number.isFinite(value)) return '无穷'
-  if (value < 1e4) return String(Math.floor(value))
+  if (value < 10) return String(Math.round(value * 10) / 10)
+  if (value < 1e4) return String(Math.round(value))
   if (value < 1e8) return `${Math.floor(value / 1e4)}万`
   if (value < 1e12) return `${Math.floor(value / 1e8)}亿`
   const exponent = Math.floor(Math.log10(value))

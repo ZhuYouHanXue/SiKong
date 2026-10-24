@@ -500,7 +500,7 @@ function App() {
               )}
               {!isOfflineMode && !tutorialActive && (
                 <button type="button" className="shisuan-entry" onClick={() => setShowShisuan(true)}>
-                  <i>⌜循一⌟</i>对一局<small>让司空猜不中你</small>
+                  试试独立小游戏<i>⌜循一⌟</i><small>意外由你来制造</small>
                 </button>
               )}
               {!isOfflineMode && showSuggestions && seed.trim() && (

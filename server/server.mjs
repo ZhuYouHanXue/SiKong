@@ -779,6 +779,7 @@ async function handleShisuan(request, response, pathname, context) {
         word: result.word,
         explain: clean(body.explain),
         score: result.score,
+        tier: result.tier,
         storyScore: result.storyScore,
         pairScore: result.pairScore,
         pairMultiplier: result.pairMultiplier,

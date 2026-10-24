@@ -12,7 +12,7 @@ import { readFileSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { generateJson, nextTokenLogprobs } from './llm.mjs'
-import { drawComment, drawRejection, drawSeal, formatBigNumber } from './shisuan-text.mjs'
+import { drawComment, drawRejection, drawSeal, formatBigNumber, formatOddsFromNat, getRatingTier } from './shisuan-text.mjs'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 export const LEVELS = JSON.parse(readFileSync(path.resolve(__dirname, '../../src/text/shisuan-levels.json'), 'utf8'))
@@ -161,7 +161,7 @@ function rateLimit(ip) {
   const list = (hits.get(ip) || []).filter(time => now - time < LIMIT.window)
   if (list.length >= LIMIT.max) {
     hits.set(ip, list)
-    throw httpError(429, '落笔太快了，司空需要喘口气，稍后再试', 'RATE_LIMITED')
+    throw httpError(429, '落笔太快了，请稍候片刻再试', 'RATE_LIMITED')
   }
   list.push(now)
   hits.set(ip, list)
@@ -215,11 +215,13 @@ export async function attempt({ prompt: rawPrompt, level: rawLevel, word: rawWor
   const score = round2(pairMultiplier * storyScore)
   const perChar = round2(storyScore / chars(explain).length)
   const line = DEFAULT_LINE
+  const tier = getRatingTier(score)
   return {
     accepted: true,
     prompt,
     word,
     score,
+    tier,
     storyScore,
     pairScore: pairVerdict.nat,
     pairMultiplier,
@@ -227,11 +229,11 @@ export async function attempt({ prompt: rawPrompt, level: rawLevel, word: rawWor
     perChar,
     threshold: line,
     passed: score >= line,
-    odds: formatBigNumber(Math.exp(perChar)),
+    odds: formatOddsFromNat(storyScore),
     estimated: scored.pieces.some(piece => !piece.inTop),
     pieces: scored.pieces.map(piece => ({ text: piece.text, info: round2(-piece.logprob), inTop: piece.inTop })),
-    comment: drawComment(score),
-    seal: drawSeal(),
+    comment: drawComment(storyScore, tier),
+    seal: drawSeal(score),
     critique: verdict.comment,
   }
 }

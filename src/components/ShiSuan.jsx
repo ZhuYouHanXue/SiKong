@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import {
   DEFAULT_LINE,
   MAX_EXPLAIN,
@@ -7,7 +8,9 @@ import {
   attemptShisuan,
   deleteShisuanRecord,
   fetchShisuanRecords,
+  getRatingTier,
   getShisuanInfo,
+  RATING_TIERS,
 } from '../services/shisuan.js'
 
 const len = (value) => Array.from(String(value ?? '')).length
@@ -83,22 +86,6 @@ function HeatSentence({ pieces }) {
 
   return (
     <div className={`xunyi-manuscript-box ${isXray ? 'is-xray' : ''}`}>
-      <div className="xunyi-manuscript-topbar">
-        <span className="xunyi-manuscript-title">诗笺意趣</span>
-        <button
-          type="button"
-          className={`xunyi-xray-btn ${isXray ? 'is-active' : ''}`}
-          onClick={toggleXray}
-          title={isXray ? '收起单字分值透视' : '透视全句单字分值 (nat)'}
-          aria-pressed={isXray}
-        >
-          <span className="xunyi-xray-icon" aria-hidden="true">
-            {isXray ? '◉' : '◎'}
-          </span>
-          <span>{isXray ? '收起透视' : '透视分值'}</span>
-        </button>
-      </div>
-
       <div
         className={`xunyi-story-display ${isXray ? 'is-xray-active' : ''} ${
           activeIdx !== null ? 'has-active-char' : ''
@@ -106,6 +93,19 @@ function HeatSentence({ pieces }) {
         aria-label="对弈诗笺"
         onMouseLeave={() => setActiveIdx(null)}
       >
+        {/* 透视微开关：置于解释首行右浮动，长文本自动绕行，彻底杜绝重叠 */}
+        <button
+          type="button"
+          className={`xunyi-xray-btn ${isXray ? 'is-active' : ''}`}
+          onClick={toggleXray}
+          aria-pressed={isXray}
+        >
+          <span className="xunyi-xray-icon" aria-hidden="true">
+            {isXray ? '◉' : '◎'}
+          </span>
+          <span>{isXray ? '收起透视' : '透视分值'}</span>
+        </button>
+
         <span className="xunyi-quote-mark" aria-hidden="true">“</span>
         {pieces.map((piece, index) => {
           const infoVal = Number(piece.info) || 0
@@ -117,18 +117,25 @@ function HeatSentence({ pieces }) {
           const isHighHeat = infoVal >= (minInfo + (maxInfo - minInfo) * 0.6)
           const isCurrentActive = activeIdx === index
 
+          // 精准计算展开数值后的槽位宽度：单字/词长 vs 数值标签长度，避免展开后相邻数值重叠
+          const textLen = Array.from(piece.text || '').length
+          const badgeChars = infoVal.toFixed(1).length
+          const badgeW = Math.round(badgeChars * 7.2 + 12)
+          const slotW = Math.max(textLen * 19, badgeW + 3)
+
           return (
             <span
               key={index}
-              className={`xunyi-char ${piece.inTop ? '' : 'is-rare'} ${
+              className={`xunyi-char ${
                 isHighHeat ? 'is-high-heat' : ''
               } ${isCurrentActive ? 'is-active' : ''}`}
               style={{
                 color,
                 fontWeight,
+                '--char-slot-w': `${slotW}px`,
               }}
-              title={`单字意奇值：${fmt(piece.info)} nat`}
               onMouseEnter={() => setActiveIdx(index)}
+              onMouseLeave={() => setActiveIdx((prev) => (prev === index ? null : prev))}
               onClick={() => setActiveIdx((prev) => (prev === index ? null : index))}
             >
               <span className="xunyi-char-glyph">{piece.text}</span>
@@ -161,18 +168,36 @@ function HeatSentence({ pieces }) {
   )
 }
 
-function ResultView({
+function ResultManuscript({
   result,
   stage = 7,
+  showSeal = false,
   isExiting = false,
-  onRetryExplain,
-  onRetry,
-  onReset,
-  onViewHistory,
 }) {
+  const tier = useMemo(
+    () => result?.tier || getRatingTier(result?.score),
+    [result?.tier, result?.score]
+  )
+
   return (
     <div className={`xunyi-result-view ${isExiting ? 'is-exiting' : ''}`} aria-live="polite">
-      {/* 1. 词偶标头：⌜A⌟ 与 ⌜B⌟ */}
+      {/* 评级印章：正方形，只写天干阶位与对应名称（中置圆点隔开），无多余冗词 */}
+      {showSeal && (
+        <aside
+          className={`xunyi-seal-stamp xunyi-seal-stamp--${tier.tone} ${
+            isExiting ? 'is-exiting' : ''
+          }`}
+          aria-label={`评级印章：${tier.stem} · ${tier.name}`}
+        >
+          <div className="xunyi-seal-border">
+            <span className="xunyi-seal-stem">{tier.stem}</span>
+            <span className="xunyi-seal-dot">·</span>
+            <strong className="xunyi-seal-name">{tier.name}</strong>
+          </div>
+        </aside>
+      )}
+
+      {/* 第一部分：两词 + 评价 */}
       {stage >= 1 && (
         <div className="xunyi-result-item xunyi-result-item--1 xunyi-result-header">
           <div className="xunyi-result-pair">
@@ -183,40 +208,46 @@ function ResultView({
         </div>
       )}
 
-      {/* 2. 大模型对AB之间的评价（新增的） */}
       {stage >= 2 && result.pairReason && (
-        <div className="xunyi-result-item xunyi-result-item--2 xunyi-eval-card xunyi-eval-card--pair" aria-label="词偶偶遇评价">
-          <span className="xunyi-eval-lead">偶遇评定</span>
-          <p className="xunyi-eval-text">“{result.pairReason}”</p>
+        <div className="xunyi-result-item xunyi-result-item--2 xunyi-comment-card" aria-label="词偶偶遇评价">
+          <p className="xunyi-comment-text">{result.pairReason}</p>
         </div>
       )}
 
-      {/* 3. 核心故事：意外热图 */}
+      {/* 第二部分：解释 + 评价 */}
       {stage >= 3 && (
         <div className="xunyi-result-item xunyi-result-item--3 xunyi-manuscript">
           <HeatSentence pieces={result.pieces} />
         </div>
       )}
 
-      {/* 4. 大模型对故事的评价 */}
       {stage >= 4 && result.critique && (
-        <div className="xunyi-result-item xunyi-result-item--4 xunyi-eval-card xunyi-eval-card--story" aria-label="故事文思评价">
-          <span className="xunyi-eval-lead">文思点评</span>
-          <p className="xunyi-eval-text">{result.critique}</p>
+        <div className="xunyi-result-item xunyi-result-item--4 xunyi-comment-card" aria-label="故事文思评价">
+          <p className="xunyi-comment-text">{result.critique}</p>
         </div>
       )}
+    </div>
+  )
+}
 
-      {/* 5. 分数结算 */}
+function ResultMetrics({
+  result,
+  stage = 7,
+  isExiting = false,
+  onRetryExplain,
+  onRetry,
+  onReset,
+}) {
+  return (
+    <div className={`xunyi-result-view xunyi-result-view--metrics ${isExiting ? 'is-exiting' : ''}`} aria-live="polite">
+      {/* 第三部分：数据 + 类比（独立成栏） */}
       {stage >= 5 && (
         <div className="xunyi-result-item xunyi-result-item--5 xunyi-metrics">
           <div className="xunyi-metric-item xunyi-metric-item--score">
-            <span className="xunyi-metric-label">惊奇意趣</span>
+            <span className="xunyi-metric-label">综合信息量</span>
             <strong className="xunyi-metric-val">
               {result.pairMultiplier && result.storyScore ? (
-                <span
-                  className="xunyi-calc-formula"
-                  title={`两词意外评分：${result.pairScore || '-'}/10 · ${result.pairReason || ''}`}
-                >
+                <span className="xunyi-calc-formula">
                   <strong className="xunyi-factor-red">{fmt(result.pairMultiplier)}</strong>
                   <span className="xunyi-times" aria-hidden="true"> × </span>
                   <span className="xunyi-story-nat">{fmt(result.storyScore)}</span>
@@ -232,26 +263,27 @@ function ResultView({
             </strong>
           </div>
           <div className="xunyi-metric-item">
-            <span className="xunyi-metric-label">言辞浓度</span>
+            <span className="xunyi-metric-label">行文浓度</span>
             <strong className="xunyi-metric-val">
               字均 {fmt(result.perChar)}
             </strong>
           </div>
           <div className="xunyi-metric-item">
-            <span className="xunyi-metric-label" title="字均等效预测命中概率">天地偶合</span>
-            <strong className="xunyi-metric-val" title={`字均等效概率：1 / ${result.odds}`}>1 / {result.odds}</strong>
+            <span className="xunyi-metric-label">天地偶合</span>
+            <strong className="xunyi-metric-val">
+              1 / {result.odds}
+            </strong>
           </div>
         </div>
       )}
 
-      {/* 6. 结合概率的评语 */}
       {stage >= 6 && result.comment && (
-        <div className="xunyi-result-item xunyi-result-item--6 xunyi-odds-box">
-          <blockquote className="xunyi-comment-quote">“{result.comment}”</blockquote>
+        <div className="xunyi-result-item xunyi-result-item--6 xunyi-comment-card xunyi-comment-card--quote" aria-label="概率类比">
+          <blockquote className="xunyi-comment-text xunyi-comment-text--quote">{result.comment}</blockquote>
         </div>
       )}
 
-      {/* 7. 底部精炼操作 */}
+      {/* 底部精炼操作（换个解释 / 再试一笔 / 另起新篇） */}
       {stage >= 7 && (
         <div className="xunyi-result-item xunyi-result-item--7 xunyi-result-actions">
           <button
@@ -259,7 +291,6 @@ function ResultView({
             className="xunyi-btn xunyi-btn--secondary"
             onClick={onRetryExplain}
             disabled={isExiting}
-            title="保留原词与联想词，清空并重写解释"
           >
             换个解释
           </button>
@@ -268,7 +299,6 @@ function ResultView({
             className="xunyi-btn xunyi-btn--secondary"
             onClick={onRetry}
             disabled={isExiting}
-            title="保留原词，重新输入联想词"
           >
             再试一笔
           </button>
@@ -277,17 +307,8 @@ function ResultView({
             className="xunyi-btn xunyi-btn--secondary"
             onClick={onReset}
             disabled={isExiting}
-            title="另起新篇（ESC）"
           >
             另起新篇 ↩
-          </button>
-          <button
-            type="button"
-            className="xunyi-btn xunyi-btn--primary"
-            onClick={onViewHistory}
-            disabled={isExiting}
-          >
-            收入谱卷 →
           </button>
         </div>
       )}
@@ -295,8 +316,9 @@ function ResultView({
   )
 }
 
-function HistoryView({ records, onReplayPrompt, onDeleteRecord }) {
+function HistoryView({ records, onReplayPrompt, onReplayRecord, onDeleteRecord }) {
   const [expanded, setExpanded] = useState({})
+  const [showLegend, setShowLegend] = useState(false)
 
   const groups = useMemo(() => {
     const map = new Map()
@@ -309,8 +331,9 @@ function HistoryView({ records, onReplayPrompt, onDeleteRecord }) {
       .map(([p, list]) => {
         const sorted = [...list].sort((a, b) => (b.score || 0) - (a.score || 0))
         const bestScore = sorted[0]?.score || 0
+        const bestTier = sorted[0]?.tier || getRatingTier(bestScore)
         const latestAt = Math.max(...sorted.map((r) => r.createdAt || 0))
-        return { prompt: p, records: sorted, bestScore, latestAt }
+        return { prompt: p, records: sorted, bestScore, bestTier, latestAt }
       })
       .sort((a, b) => b.latestAt - a.latestAt)
   }, [records])
@@ -329,7 +352,7 @@ function HistoryView({ records, onReplayPrompt, onDeleteRecord }) {
     return (
       <div className="xunyi-empty-history">
         <p>暂无对弈记录</p>
-        <small>写下两个看似无关的词，且看司空如何应对。</small>
+        <small>写下两个看似无关的词，且看能否交汇成章。</small>
       </div>
     )
   }
@@ -337,14 +360,55 @@ function HistoryView({ records, onReplayPrompt, onDeleteRecord }) {
   return (
     <div className="xunyi-history-list">
       <div className="xunyi-history-lead">
-        <span>对弈归谱</span>
-        <small>同起手词聚合归档</small>
+        <div className="xunyi-history-lead-main">
+          <span>对弈归谱</span>
+          <small>同起手词聚合归档</small>
+        </div>
+        <button
+          type="button"
+          className={`xunyi-tiers-legend-toggle ${showLegend ? 'is-active' : ''}`}
+          onClick={() => setShowLegend((prev) => !prev)}
+          aria-expanded={showLegend}
+        >
+          <span className="xunyi-legend-toggle-label">七级品阶</span>
+          <i className="xunyi-legend-toggle-arrow" aria-hidden="true">
+            {showLegend ? '▴' : '▾'}
+          </i>
+        </button>
       </div>
 
-      {groups.map((group) => {
+      {/* 七级品阶平滑展开图例 */}
+      <div className={`xunyi-legend-drawer ${showLegend ? 'is-open' : ''}`}>
+        <div className="xunyi-legend-drawer-inner">
+          <div className="xunyi-legend-grid">
+            {RATING_TIERS.map((tier) => (
+              <div
+                key={tier.level}
+                className={`xunyi-legend-card xunyi-legend-card--${tier.tone}`}
+              >
+                <div className="xunyi-legend-card-top">
+                  <span className="xunyi-legend-card-badge">{tier.stem} · {tier.name}</span>
+                  <small className="xunyi-legend-card-kicker">{tier.kicker}</small>
+                </div>
+                <div className="xunyi-legend-card-score">
+                  {tier.max === Infinity ? `≥ ${tier.min}` : `${tier.min} ～ ${tier.max}`}
+                  <small> nat</small>
+                </div>
+                <p className="xunyi-legend-card-desc">{tier.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {groups.map((group, groupIdx) => {
         const isOpen = Boolean(expanded[group.prompt])
         return (
-          <article key={group.prompt} className={`xunyi-folder-card ${isOpen ? 'is-open' : ''}`}>
+          <article
+            key={group.prompt}
+            className={`xunyi-folder-card ${isOpen ? 'is-open' : ''}`}
+            style={{ '--card-idx': groupIdx }}
+          >
             <header className="xunyi-folder-header">
               <button
                 type="button"
@@ -352,8 +416,13 @@ function HistoryView({ records, onReplayPrompt, onDeleteRecord }) {
                 onClick={() => toggleGroup(group.prompt)}
                 aria-expanded={isOpen}
               >
-                <span className="xunyi-folder-arrow">{isOpen ? '▾' : '▸'}</span>
+                <span className="xunyi-folder-arrow" aria-hidden="true">▸</span>
                 <strong className="xunyi-folder-title">⌜{group.prompt}⌟</strong>
+                <span
+                  className={`xunyi-tier-badge xunyi-tier-badge--${group.bestTier.tone}`}
+                >
+                  {group.bestTier.stem} · {group.bestTier.name}
+                </span>
                 <span className="xunyi-folder-meta">
                   {group.records.length} 局 · 峰值 {fmt(group.bestScore)} nat
                 </span>
@@ -361,57 +430,69 @@ function HistoryView({ records, onReplayPrompt, onDeleteRecord }) {
               <button
                 type="button"
                 className="xunyi-folder-replay"
-                title="以此词再战"
                 onClick={() => onReplayPrompt(group.prompt)}
               >
                 再战
               </button>
             </header>
 
-            {isOpen && (
-              <ol className="xunyi-records-list">
-                {group.records.map((item, index) => (
-                  <li
-                    key={item.id || `${item.prompt}-${item.word}-${index}`}
-                    className={index === 0 ? 'is-top' : ''}
-                  >
-                    <div className="xunyi-record-row">
-                      <span className="xunyi-record-rank">#{index + 1}</span>
-                      <strong className="xunyi-record-word">⌜{item.word}⌟</strong>
-                      <span className="xunyi-record-score">
-                        {item.pairMultiplier && item.storyScore ? (
+            <div className="xunyi-folder-body">
+              <div className="xunyi-folder-collapse">
+                <ol className="xunyi-records-list">
+                  {group.records.map((item, index) => {
+                    const itemTier = item.tier || getRatingTier(item.score)
+                    return (
+                      <li
+                        key={item.id || `${item.prompt}-${item.word}-${index}`}
+                        className={`xunyi-record-item ${index === 0 ? 'is-top' : ''}`}
+                        onClick={() => onReplayRecord?.(item)}
+                      >
+                        <div className="xunyi-record-row">
+                          <span className="xunyi-record-rank">#{index + 1}</span>
+                          <strong className="xunyi-record-word">⌜{item.word}⌟</strong>
                           <span
-                            className="xunyi-record-formula"
-                            title={`两词意外评分：${item.pairScore || '-'}/10 · ${item.pairReason || ''}`}
+                            className={`xunyi-tier-tag xunyi-tier-tag--${itemTier.tone}`}
                           >
-                            <strong className="xunyi-factor-red">{fmt(item.pairMultiplier)}</strong>
-                            <span className="xunyi-times" aria-hidden="true"> × </span>
-                            <span className="xunyi-story-nat">{fmt(item.storyScore)}</span>
-                            <span className="xunyi-equal" aria-hidden="true"> = </span>
-                            <strong className="xunyi-record-final">{fmt(item.score)}</strong>
-                            <small className="xunyi-unit"> nat</small>
+                            {itemTier.stem} · {itemTier.name}
                           </span>
-                        ) : (
-                          <>{fmt(item.score)} nat</>
-                        )}
-                      </span>
-                      <span className="xunyi-record-date">{formatDate(item.createdAt)}</span>
-                      {item.id && (
-                        <button
-                          type="button"
-                          className="xunyi-record-del"
-                          title="删除"
-                          onClick={() => onDeleteRecord(item.id)}
-                        >
-                          ×
-                        </button>
-                      )}
-                    </div>
-                    {item.explain && <p className="xunyi-record-explain">“{item.explain}”</p>}
-                  </li>
-                ))}
-              </ol>
-            )}
+                          <span className="xunyi-record-score">
+                            {item.pairMultiplier && item.storyScore ? (
+                              <span className="xunyi-record-formula">
+                                <strong className="xunyi-factor-red">{fmt(item.pairMultiplier)}</strong>
+                                <span className="xunyi-times" aria-hidden="true"> × </span>
+                                <span className="xunyi-story-nat">{fmt(item.storyScore)}</span>
+                                <span className="xunyi-equal" aria-hidden="true"> = </span>
+                                <strong className="xunyi-record-final">{fmt(item.score)}</strong>
+                                <small className="xunyi-unit"> nat</small>
+                              </span>
+                            ) : (
+                              <>{fmt(item.score)} nat</>
+                            )}
+                          </span>
+                          <span className="xunyi-record-date">{formatDate(item.createdAt)}</span>
+                          <span className="xunyi-record-replay-hint" aria-hidden="true">
+                            重放 ↻
+                          </span>
+                          {item.id && (
+                            <button
+                              type="button"
+                              className="xunyi-record-del"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                onDeleteRecord(item.id, e)
+                              }}
+                            >
+                              ×
+                            </button>
+                          )}
+                        </div>
+                        {item.explain && <p className="xunyi-record-explain">“{item.explain}”</p>}
+                      </li>
+                    )
+                  })}
+                </ol>
+              </div>
+            </div>
           </article>
         )
       })}
@@ -419,8 +500,96 @@ function HistoryView({ records, onReplayPrompt, onDeleteRecord }) {
   )
 }
 
+function XunYiHelpModal({ isOpen, onClose }) {
+  const [shaking, setShaking] = useState(false)
+
+  useEffect(() => {
+    if (!isOpen) return
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape') onClose()
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [isOpen, onClose])
+
+  if (!isOpen) return null
+
+  const handleShakeRequest = (e) => {
+    e.stopPropagation()
+    setShaking(true)
+  }
+
+  const handleShakeEnd = (e) => {
+    if (e.animationName === 'sikong-tutorial-shake') {
+      setShaking(false)
+    }
+  }
+
+  return createPortal(
+    <>
+      <div
+        className="sikong-tutorial-modal-backdrop"
+        onClick={onClose}
+        aria-hidden="true"
+      />
+      <div className="sikong-tutorial-modal-pos">
+        <div
+          className={`sikong-tutorial-modal xunyi-help-modal${shaking ? ' sikong-tutorial-modal--shake' : ''}`}
+          role="dialog"
+          aria-modal="true"
+          aria-label="循一介绍与规则"
+          onAnimationEnd={handleShakeEnd}
+        >
+          <button
+            type="button"
+            className="xunyi-help-modal__dismiss"
+            onClick={onClose}
+            aria-label="关闭"
+          >
+            ✕
+          </button>
+
+          <p className="sikong-tutorial-modal__lead">「循一」介绍与规则</p>
+
+          <p>
+            《周易·系辞》云：<strong>「大衍之数五十，其用四十有九。」</strong><br />
+            数穷其极，天道留一。在万物定数之中，与你循探那遁去的一——于极微之偶合，见天地之大千。
+          </p>
+
+          <p><strong>三步对弈法则：</strong></p>
+          <ul className="sikong-tutorial-modal__group">
+            <li><strong>起手</strong>：随机出题立意，亦可自行起笔拟定第一词；</li>
+            <li><strong>落子</strong>：写下一个看似风马牛不相及的「无关词」，两者意象跨度愈大，激发的意外度倍乘（0.65×～2.85×）愈高；</li>
+            <li><strong>结缘</strong>：以 10～70 字的故事或解释，言明两者幽微天成的牵系，化两极偶然为合情合理的诗笺。</li>
+          </ul>
+
+          <p><strong>裁定与天地偶合：</strong></p>
+          <ul className="sikong-tutorial-modal__group">
+            <li><strong>文思审读</strong>：由语言模型审定牵系是否合乎情理，严禁无意义语气词堆砌凑字；</li>
+            <li><strong>综合信息量</strong>：结合两词意外度倍乘与整句诗笺的单字负对数似然（nat），统一计算文本信息量；</li>
+            <li><strong>天地偶合</strong>：将文本信息熵映射为大千世界罕见事件发生的等效概率（从星辰到恒河沙）；</li>
+            <li><strong>天干七品</strong>：依信息量裁定庚、己、戊、丁、丙、乙、甲七等印章，万法归一，方成妙绝。</li>
+          </ul>
+
+          <button
+            type="button"
+            className="sikong-tutorial__close"
+            onClick={onClose}
+            aria-label="关闭弹窗"
+            title="知悉"
+          >
+            →
+          </button>
+        </div>
+      </div>
+    </>,
+    document.body
+  )
+}
+
 function ShiSuan({ onReturnHome, onOpenDrawer }) {
   const [tab, setTab] = useState('play') // 'play' | 'history'
+  const [showHelp, setShowHelp] = useState(false)
   const [info, setInfo] = useState(null)
   const [records, setRecords] = useState([])
   const [prompt, setPrompt] = useState('')
@@ -436,6 +605,7 @@ function ShiSuan({ onReturnHome, onOpenDrawer }) {
   const [revealedNode3, setRevealedNode3] = useState(false)
   const [spineHeight, setSpineHeight] = useState(0)
   const [settledStage, setSettledStage] = useState(0)
+  const [showSeal, setShowSeal] = useState(false)
   const [isExiting, setIsExiting] = useState(false)
   const exitTimerRef = useRef(null)
 
@@ -450,6 +620,7 @@ function ShiSuan({ onReturnHome, onOpenDrawer }) {
   const node1Ref = useRef(null)
   const node2Ref = useRef(null)
   const node3Ref = useRef(null)
+  const node4Ref = useRef(null)
 
   const available = info?.available !== false
 
@@ -465,6 +636,7 @@ function ShiSuan({ onReturnHome, onOpenDrawer }) {
       if (result) setResult(null)
       if (rejection) setRejection(null)
       setSettledStage(0)
+      setShowSeal(false)
       setIsExiting(false)
     }
   }, [isBothEmpty])
@@ -480,6 +652,7 @@ function ShiSuan({ onReturnHome, onOpenDrawer }) {
   useEffect(() => {
     if (!result) {
       setSettledStage(0)
+      setShowSeal(false)
       return
     }
 
@@ -492,7 +665,10 @@ function ShiSuan({ onReturnHome, onOpenDrawer }) {
         setTimeout(() => {
           setSettledStage(index + 1)
         }, delay)
-      )
+      ),
+      setTimeout(() => {
+        setShowSeal(true)
+      }, 1480), // 第三栏全部条目展示完毕后，印章从容盖下
     ]
 
     return () => {
@@ -522,7 +698,12 @@ function ShiSuan({ onReturnHome, onOpenDrawer }) {
       setSpineHeight((prev) => (prev === 40 ? prev : 40))
       return
     }
-    if (revealedNode3 && node3Ref.current) {
+    if (revealedNode3 && result && settledStage >= 5 && node4Ref.current) {
+      const n4 = node4Ref.current
+      const target = n4.offsetTop + Math.max(36, n4.offsetHeight - 16) - spineTop
+      const val = Math.max(40, target)
+      setSpineHeight((prev) => (Math.abs(prev - val) < 1 ? prev : val))
+    } else if (revealedNode3 && node3Ref.current) {
       const n3 = node3Ref.current
       const target = n3.offsetTop + (result ? Math.max(36, n3.offsetHeight - 16) : 36) - spineTop
       const val = Math.max(40, target)
@@ -674,6 +855,7 @@ function ShiSuan({ onReturnHome, onOpenDrawer }) {
     setRejection(null)
     setResult(null)
     setSettledStage(0)
+    setShowSeal(false)
     setBusy(true)
     try {
       const res = await attemptShisuan({ prompt: p, word: w, explain: e })
@@ -700,6 +882,7 @@ function ShiSuan({ onReturnHome, onOpenDrawer }) {
     setExplain('')
     setResult(null)
     setSettledStage(0)
+    setShowSeal(false)
     setRejection(null)
     setRevealedNode2(false)
     setRevealedNode3(false)
@@ -714,6 +897,7 @@ function ShiSuan({ onReturnHome, onOpenDrawer }) {
     setExplain('')
     setResult(null)
     setSettledStage(0)
+    setShowSeal(false)
     setRejection(null)
     setRevealedNode2(true)
     setRevealedNode3(false)
@@ -729,6 +913,7 @@ function ShiSuan({ onReturnHome, onOpenDrawer }) {
     setExplain('')
     setResult(null)
     setSettledStage(0)
+    setShowSeal(false)
     setRejection(null)
     setRevealedNode2(false)
     setRevealedNode3(false)
@@ -777,6 +962,7 @@ function ShiSuan({ onReturnHome, onOpenDrawer }) {
     setExplain('')
     setResult(null)
     setSettledStage(0)
+    setShowSeal(false)
     setRejection(null)
     setRevealedNode3(false)
     setError('')
@@ -786,8 +972,36 @@ function ShiSuan({ onReturnHome, onOpenDrawer }) {
     }, 200)
   }
 
-  const handleDeleteRecord = async (id) => {
-    if (!window.confirm('确定抹去这条记录吗？')) return
+  const handleReplayRecord = (record) => {
+    if (!record) return
+    const pieces = Array.isArray(record.pieces) && record.pieces.length > 0
+      ? record.pieces
+      : Array.from(record.explain || '').map((ch) => ({ text: ch, info: 1.5, inTop: true }))
+
+    setPrompt(record.prompt || '')
+    setWord(record.word || '')
+    setExplain(record.explain || '')
+    setRevealedNode2(true)
+    setRevealedNode3(true)
+    setError('')
+    setRejection(null)
+    setIsExiting(false)
+    setResult(null)
+    setSettledStage(0)
+    setShowSeal(false)
+    setTab('play')
+
+    setTimeout(() => {
+      setResult({
+        ...record,
+        pieces,
+        accepted: true,
+      })
+    }, 60)
+  }
+
+  const handleDeleteRecord = async (id, e) => {
+    e?.stopPropagation?.()
     try {
       await deleteShisuanRecord(id)
       setRecords((prev) => prev.filter((r) => r.id !== id))
@@ -800,12 +1014,9 @@ function ShiSuan({ onReturnHome, onOpenDrawer }) {
     <section className="xunyi-open-view" aria-label="循一对弈">
       {/* 顶部标头栏：纯粹克制 */}
       <header className="xunyi-topbar">
-        <button
-          type="button"
+        <div
           className="xunyi-logo"
-          onClick={onOpenDrawer}
-          title="打开留印与设置"
-          aria-label="循一 XUN YI"
+          aria-label="循一"
         >
           <div className="xunyi-logo__emblem" aria-hidden="true">
             <svg
@@ -840,10 +1051,22 @@ function ShiSuan({ onReturnHome, onOpenDrawer }) {
             </svg>
           </div>
           <div className="xunyi-logo__wordmark">
-            <span>循<i>一</i></span>
-            <small>XUN YI</small>
+            <span className="xunyi-wordmark-line">大衍之数五十</span>
+            <span className="xunyi-wordmark-line">用其四十九</span>
           </div>
-        </button>
+          <button
+            type="button"
+            className="xunyi-help-btn"
+            onClick={(e) => {
+              e.stopPropagation()
+              setShowHelp(true)
+            }}
+            aria-label="查看循一介绍与规则"
+            title="介绍与规则"
+          >
+            ?
+          </button>
+        </div>
 
         <nav className="xunyi-nav-tabs" role="tablist">
           <button
@@ -854,7 +1077,7 @@ function ShiSuan({ onReturnHome, onOpenDrawer }) {
             onClick={() => setTab('play')}
             disabled={busy || isExiting}
           >
-            对弈
+            循
           </button>
           <button
             type="button"
@@ -864,7 +1087,7 @@ function ShiSuan({ onReturnHome, onOpenDrawer }) {
             onClick={() => setTab('history')}
             disabled={busy || isExiting}
           >
-            归谱 {records.length > 0 && <small>({records.length})</small>}
+            归 {records.length > 0 && <small>({records.length})</small>}
           </button>
         </nav>
 
@@ -873,7 +1096,6 @@ function ShiSuan({ onReturnHome, onOpenDrawer }) {
           className="xunyi-back-home-btn"
           onClick={onReturnHome}
           disabled={busy || isExiting}
-          title="退出对弈，返回司空（ESC）"
         >
           <span>首页</span>
           <i aria-hidden="true">↩</i>
@@ -1027,7 +1249,6 @@ function ShiSuan({ onReturnHome, onOpenDrawer }) {
                       <button
                         type="button"
                         className="xunyi-submit-btn"
-                        title="落笔（Ctrl+Enter）"
                         disabled={
                           busy ||
                           !available ||
@@ -1055,8 +1276,7 @@ function ShiSuan({ onReturnHome, onOpenDrawer }) {
 
                   {rejection && (
                     <div className="xunyi-rejection-card" role="alert">
-                      <strong>{rejection.message}</strong>
-                      {rejection.critique && <p>{rejection.critique}</p>}
+                      <p className="xunyi-rejection-text">{rejection.critique || rejection.message}</p>
                     </div>
                   )}
 
@@ -1066,7 +1286,7 @@ function ShiSuan({ onReturnHome, onOpenDrawer }) {
             )}
 
             {/* 节点 3：命定 冥冥之中（Diamond 3，规则 3：只有点击提交按钮才出现） */}
-            {revealedNode3 && (
+            {revealedNode3 && !result && (
               <section className="xunyi-node xunyi-node--3" ref={node3Ref}>
                 <div className="xunyi-diamond" aria-hidden="true" />
                 <div className="xunyi-node__main">
@@ -1074,24 +1294,55 @@ function ShiSuan({ onReturnHome, onOpenDrawer }) {
                     <span className="xunyi-node__kicker">命定 冥冥之中</span>
                     <span className="xunyi-node__hairline" />
                   </header>
-
-                  {result ? (
-                    <ResultView
-                      result={result}
-                      stage={settledStage}
-                      isExiting={isExiting}
-                      onRetryExplain={handleRetryExplain}
-                      onRetry={handleRetry}
-                      onReset={handleReset}
-                      onViewHistory={() => setTab('history')}
-                    />
-                  ) : (
-                    <div className="xunyi-result-pending">
-                      <span>司空品读评卷中…</span>
-                    </div>
-                  )}
+                  <div className="xunyi-result-pending">
+                    <span>品读评卷中…</span>
+                  </div>
                 </div>
               </section>
+            )}
+
+            {revealedNode3 && result && (
+              <>
+                {/* 节点 3：命定 冥冥之中（两词与文思诗笺） */}
+                <section className="xunyi-node xunyi-node--3" ref={node3Ref}>
+                  <div className="xunyi-diamond" aria-hidden="true" />
+                  <div className="xunyi-node__main">
+                    <header className="xunyi-node__head">
+                      <span className="xunyi-node__kicker">命定 冥冥之中</span>
+                      <span className="xunyi-node__hairline" />
+                    </header>
+
+                    <ResultManuscript
+                      result={result}
+                      stage={settledStage}
+                      showSeal={showSeal}
+                      isExiting={isExiting}
+                    />
+                  </div>
+                </section>
+
+                {/* 节点 4：循一 天地偶合（数值指标与概率类比，独立成栏） */}
+                {settledStage >= 5 && (
+                  <section className="xunyi-node xunyi-node--4" ref={node4Ref}>
+                    <div className="xunyi-diamond" aria-hidden="true" />
+                    <div className="xunyi-node__main">
+                      <header className="xunyi-node__head">
+                        <span className="xunyi-node__kicker">循一 天地偶合</span>
+                        <span className="xunyi-node__hairline" />
+                      </header>
+
+                      <ResultMetrics
+                        result={result}
+                        stage={settledStage}
+                        isExiting={isExiting}
+                        onRetryExplain={handleRetryExplain}
+                        onRetry={handleRetry}
+                        onReset={handleReset}
+                      />
+                    </div>
+                  </section>
+                )}
+              </>
             )}
           </div>
         )}
@@ -1100,10 +1351,13 @@ function ShiSuan({ onReturnHome, onOpenDrawer }) {
           <HistoryView
             records={records}
             onReplayPrompt={handleReplayPrompt}
+            onReplayRecord={handleReplayRecord}
             onDeleteRecord={handleDeleteRecord}
           />
         )}
       </div>
+
+      <XunYiHelpModal isOpen={showHelp} onClose={() => setShowHelp(false)} />
     </section>
   )
 }
